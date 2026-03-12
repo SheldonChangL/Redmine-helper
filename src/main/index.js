@@ -6,6 +6,12 @@ const { registerAll: registerIpc } = require('./ipc/index');
 const { initStore } = require('./cache/store');
 const { IPC } = require('../shared/constants');
 
+// Enforce single instance — prevents a zombie old build from also handling
+// the global shortcut and leaving a ghost spotlight window on screen.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+
 let mainWindow = null;
 let spotlightWindow = null;
 
@@ -47,7 +53,12 @@ function createMainWindow() {
 function hideSpotlight() {
   spotlightVisible = false;
   lastSpotlightHideTime = Date.now();
-  if (spotlightWindow) spotlightWindow.hide();
+  if (spotlightWindow) {
+    // Drop out of the always-on-top layer before hiding to prevent the macOS
+    // compositor from leaving a ghost rendering of the transparent window.
+    spotlightWindow.setAlwaysOnTop(false);
+    spotlightWindow.hide();
+  }
 }
 
 function createSpotlightWindow() {
@@ -56,7 +67,7 @@ function createSpotlightWindow() {
     height: 480,
     frame: false,
     transparent: true,
-    alwaysOnTop: true,
+    alwaysOnTop: false, // set true only while visible (see showSpotlight)
     skipTaskbar: true,
     resizable: false,
     show: false,
@@ -85,6 +96,7 @@ function toggleSpotlight() {
     hideSpotlight();
   } else {
     spotlightVisible = true;
+    spotlightWindow.setAlwaysOnTop(true);
     spotlightWindow.show();
     spotlightWindow.focus();
   }
@@ -101,6 +113,14 @@ app.whenReady().then(async () => {
   registerHotkeys(mainWindow, toggleSpotlight);
 
   ipcMain.on(IPC.SPOTLIGHT_CLOSE, () => hideSpotlight());
+});
+
+// When a second instance tries to start, focus the existing main window.
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
+  }
 });
 
 app.on('before-quit', () => {
