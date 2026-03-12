@@ -52,6 +52,13 @@ PR: https://github.com/SheldonChangL/Redmine-helper/pull/10
 - src/renderer/spotlight.html: form with clipboard upload button
 - src/renderer/css/spotlight.css: styling + validation flash + hidden class
 
+**Fixes applied in fix-iteration commit (7f1e197):**
+- hotkeys.js: Cmd+Shift+N now toggles hide/show — prevents double-press transparent+opaque overlap
+- spotlight redesigned: dedicated title input, project/tracker always visible, assignee dropdown per project
+- redmineClient.js + constants.js + issues.ipc.js + preload.js: PROJECT_MEMBERS channel
+- spotlight window height 320 → 440px
+- spotlight.css: new layout, removed autocomplete styles
+
 **Fixes applied in fix-iteration commit (58793ad):**
 - src/main/index.js: removed app.dock.hide() — app now visible in macOS Dock
 - src/renderer/spotlight.html: added theme-light/dark CSS links — fixes invisible/transparent window
