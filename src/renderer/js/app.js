@@ -1,5 +1,6 @@
 import { renderSettings } from './views/settings.js';
 import { renderIssueList } from './views/issueList.js';
+import { renderTimeLog } from './views/timeLog.js';
 
 const content = document.getElementById('content');
 
@@ -26,7 +27,7 @@ async function navigate(view) {
   } else if (view === 'issues') {
     await renderIssueList(content);
   } else if (view === 'time') {
-    content.innerHTML = '<p style="color:var(--text-muted)">Time tracking — coming in Phase 3.</p>';
+    await renderTimeLog(content);
   }
 }
 

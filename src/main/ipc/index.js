@@ -3,6 +3,7 @@ const { IPC } = require('../../shared/constants');
 const credentials = require('../credentials');
 const redmine = require('../api/redmineClient');
 const issuesIpc = require('./issues.ipc');
+const timeIpc = require('./time.ipc');
 
 function registerAll(store) {
   const getFromStore = (key) => store ? store.get(key) : undefined;
@@ -35,6 +36,9 @@ function registerAll(store) {
 
   // Issues
   issuesIpc.register(store);
+
+  // Time
+  timeIpc.register();
 }
 
 module.exports = { registerAll };
