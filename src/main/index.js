@@ -77,10 +77,6 @@ app.whenReady().then(async () => {
   ipcMain.on(IPC.SPOTLIGHT_CLOSE, () => {
     if (spotlightWindow) spotlightWindow.hide();
   });
-
-  if (process.platform === 'darwin') {
-    app.dock.hide();
-  }
 });
 
 app.on('before-quit', () => {
