@@ -1,14 +1,13 @@
 # PROJECT STATE
 
 ## Active Branch
-`feature/issue-4-quick-create-attachments`
+`main`
 
 ## Active Issue
-GitHub Issue #4 — Phase 4: Quick Creation & Attachments
+None — ready for Phase 5
 
 ## Status
-**PR open — fix iteration in progress**
-PR: https://github.com/SheldonChangL/Redmine-helper/pull/10
+**Phase 4 complete — PR #10 squash-merged to main**
 
 ## Completed Work
 
@@ -39,7 +38,7 @@ PR: https://github.com/SheldonChangL/Redmine-helper/pull/10
 - Fix: build/icons/tray-icon.png — real PNG to prevent macOS Tray crash
 - Fix: markdownRenderer.js import path corrected (../../../../node_modules)
 
-### Phase 4 — Quick Creation & Attachments (PR #10, fix iteration)
+### Phase 4 — Quick Creation & Attachments (merged to main via PR #10)
 - src/shared/constants.js: ISSUES_CREATE, UPLOAD_CLIPBOARD, SPOTLIGHT_CLOSE added
 - src/main/api/redmineClient.js: createIssue()
 - src/main/api/uploadClient.js: uploadImage() via Redmine uploads API
@@ -64,7 +63,7 @@ PR: https://github.com/SheldonChangL/Redmine-helper/pull/10
 - src/renderer/spotlight.html: added theme-light/dark CSS links — fixes invisible/transparent window
 - src/renderer/css/base.css: sidebar padding-top 12px → 42px — clears hiddenInset traffic-light buttons
 
-## Next Step (after PR #10 is merged)
+## Next Step
 Phase 5 — Notifications & Polish (Issue #5)
 - Background polling for issue changes
 - Native OS notifications
