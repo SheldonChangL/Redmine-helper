@@ -4,6 +4,7 @@ const { createTray } = require('./tray');
 const { register: registerHotkeys, unregister: unregisterHotkeys } = require('./hotkeys');
 const { registerAll: registerIpc } = require('./ipc/index');
 const { stop: stopPoller } = require('./polling/pollerManager');
+const { initAutoUpdater } = require('./updater');
 const { initStore } = require('./cache/store');
 const { IPC } = require('../shared/constants');
 
@@ -39,7 +40,10 @@ function createMainWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    initAutoUpdater(mainWindow);
+  });
 
   mainWindow.on('close', (e) => {
     if (!app.isQuitting) {

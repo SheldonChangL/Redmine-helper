@@ -13,9 +13,11 @@ files:
 
 main: src/main/index.js
 
+afterSign: scripts/notarize.js
+
 mac:
   category: public.app-category.productivity
-  icon: build/icons/icon.icns
+  icon: build/icons/icon.png
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
@@ -27,7 +29,7 @@ mac:
       arch: [x64, arm64]
 
 win:
-  icon: build/icons/icon.ico
+  icon: build/icons/icon.png
   target:
     - target: nsis
       arch: [x64]

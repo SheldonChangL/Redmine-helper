@@ -2,6 +2,7 @@ node_modules/
 dist/
 .DS_Store
 *.log
-build/icons/icon.*
+build/icons/icon.icns
+build/icons/icon.ico
 src/main/credentials.enc
 fallback.key
