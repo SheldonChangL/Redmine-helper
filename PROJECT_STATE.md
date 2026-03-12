@@ -1,13 +1,13 @@
 # PROJECT STATE
 
 ## Active Branch
-`main`
+`feature/issue-5-notifications-polish`
 
 ## Active Issue
-None — ready for Phase 5
+GitHub Issue #5 — Phase 5: Notifications & Polish
 
 ## Status
-**Phase 4 complete — PR #10 squash-merged to main**
+**Implementation complete — ready for PR**
 
 ## Completed Work
 
@@ -63,11 +63,18 @@ None — ready for Phase 5
 - src/renderer/spotlight.html: added theme-light/dark CSS links — fixes invisible/transparent window
 - src/renderer/css/base.css: sidebar padding-top 12px → 42px — clears hiddenInset traffic-light buttons
 
+### Phase 5 — Notifications & Polish (feature/issue-5-notifications-polish)
+- src/main/polling/issuePoller.js: snapshot diff — detects status changes + new assignments
+- src/main/polling/pollerManager.js: setTimeout chain (no overlap), user-configurable interval
+- src/main/ipc/notifications.js: Electron Notification API + IPC push to renderer
+- src/main/ipc/index.js: starts/restarts poller on creds save/clear and pollInterval change
+- src/main/index.js: passes () => mainWindow to registerIpc; stops poller on quit
+- src/renderer/js/views/issueList.js: listens for NOTIFY_ISSUE_CHANGED → auto-refreshes
+- Dark mode auto-switch: already complete in app.js (applyTheme + matchMedia listener)
+- Settings UI for poll intervals: already complete in settings.js
+
 ## Next Step
-Phase 5 — Notifications & Polish (Issue #5)
-- Background polling for issue changes
-- Native OS notifications
-- Dark mode auto-switch
+Phase 6 — Build & Deployment (Issue #6)
 
 ## Blockers
 None currently.

@@ -5,6 +5,7 @@ let _allIssues = [];
 let _projects = [];
 let _priorities = [];
 let _selectedId = null;
+let _notifyHandler = null; // current NOTIFY_ISSUE_CHANGED listener (replaced on each render)
 
 const PRIORITY_CLASS = { 1: 'priority-urgent', 2: 'priority-high', 3: 'priority-normal', 4: 'priority-low' };
 
@@ -101,6 +102,12 @@ async function openDetail(issue, root) {
 }
 
 export async function renderIssueList(container) {
+  // Replace previous notification handler so navigating away and back doesn't stack listeners
+  if (_notifyHandler) {
+    window.redmine.off('notify:issueChanged', _notifyHandler);
+    _notifyHandler = null;
+  }
+
   container.setAttribute('data-view-root', '');
   container.innerHTML = `
     <link rel="stylesheet" href="css/issues.css" />
@@ -144,6 +151,11 @@ export async function renderIssueList(container) {
   }
 
   container.querySelector('#btn-refresh').addEventListener('click', load);
+
+  // Auto-refresh when the background poller detects a change
+  _notifyHandler = () => load();
+  window.redmine.on('notify:issueChanged', _notifyHandler);
+
   await load();
 }
 
