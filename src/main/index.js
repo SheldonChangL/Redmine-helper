@@ -3,6 +3,7 @@ const path = require('path');
 const { createTray } = require('./tray');
 const { register: registerHotkeys, unregister: unregisterHotkeys } = require('./hotkeys');
 const { registerAll: registerIpc } = require('./ipc/index');
+const { stop: stopPoller } = require('./polling/pollerManager');
 const { initStore } = require('./cache/store');
 const { IPC } = require('../shared/constants');
 
@@ -104,7 +105,7 @@ function toggleSpotlight() {
 
 app.whenReady().then(async () => {
   const store = await initStore();
-  registerIpc(store);
+  registerIpc(store, () => mainWindow);
 
   mainWindow = createMainWindow();
   spotlightWindow = createSpotlightWindow();
@@ -126,6 +127,7 @@ app.on('second-instance', () => {
 app.on('before-quit', () => {
   app.isQuitting = true;
   unregisterHotkeys();
+  stopPoller();
 });
 
 app.on('window-all-closed', () => {
