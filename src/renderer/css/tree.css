@@ -108,3 +108,75 @@
   min-height: 16px;
   margin: 4px 0 8px;
 }
+
+/* ── Comments ─────────────────────────────────────────────────────────────── */
+
+.comments-section {
+  margin: 12px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comments-header {
+  margin-bottom: 4px;
+}
+
+.comment {
+  background: var(--bg-secondary, rgba(255,255,255,0.04));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.comment-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.comment-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.comment-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.comment-body p:first-child { margin-top: 0; }
+.comment-body p:last-child  { margin-bottom: 0; }
+
+/* ── Add-comment section ──────────────────────────────────────────────────── */
+
+.add-comment-section {
+  margin: 12px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add-comment-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}

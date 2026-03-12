@@ -5,6 +5,13 @@ function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function formatDate(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
 /**
  * Open (or refresh) the sliding detail panel for an issue.
  *
@@ -49,9 +56,11 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
     return;
   }
 
-  const issue   = issueResult.issue;
+  const issue    = issueResult.issue;
   const statuses = statusResult.ok ? statusResult.statuses : [];
   const members  = membersResult.ok ? membersResult.members : [];
+  const journals = issue.journals || [];
+  const comments = journals.filter(j => j.notes && j.notes.trim());
 
   const statusOptions = statuses.map(s =>
     `<option value="${s.id}" ${s.id === issue.status.id ? 'selected' : ''}>${escHtml(s.name)}</option>`
@@ -65,6 +74,22 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
   ].join('');
 
   const doneRatio = issue.done_ratio ?? 0;
+
+  // Build comments HTML
+  const commentsHtml = comments.length ? `
+    <div class="comments-section">
+      <div class="detail-label comments-header">Comments (${comments.length})</div>
+      ${comments.map(j => `
+        <div class="comment">
+          <div class="comment-meta">
+            <span class="comment-author">${escHtml(j.user?.name || 'Unknown')}</span>
+            <span class="comment-date">${formatDate(j.created_on)}</span>
+          </div>
+          <div class="comment-body">${renderMarkdown(j.notes)}</div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
 
   detail.innerHTML = `
     <div class="issue-detail-header">
@@ -95,6 +120,15 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
     <div id="detail-tree"></div>
 
     <div class="issue-body" id="detail-body"></div>
+
+    ${commentsHtml}
+
+    <div class="add-comment-section">
+      <div class="detail-label comments-header">Add Comment</div>
+      <textarea id="detail-note" rows="3" placeholder="Write a comment…"></textarea>
+      <button class="btn btn-primary" id="btn-post-comment" style="margin-top:6px">Post Comment</button>
+      <p id="detail-comment-status" class="detail-save-status"></p>
+    </div>
   `;
 
   // Description
@@ -138,6 +172,7 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
       saveStatus.textContent = 'Error: ' + (result.error || 'unknown');
       saveStatus.style.color = 'var(--danger)';
     }
+    return result.ok;
   }
 
   detail.querySelector('#detail-status').addEventListener('change', (e) =>
@@ -152,4 +187,28 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
   progressInput.addEventListener('change', () =>
     save({ done_ratio: Number(progressInput.value) })
   );
+
+  // ── Add comment ───────────────────────────────────────────────────────────
+  const noteEl          = detail.querySelector('#detail-note');
+  const commentStatusEl = detail.querySelector('#detail-comment-status');
+  const btnPost         = detail.querySelector('#btn-post-comment');
+
+  btnPost.addEventListener('click', async () => {
+    const note = noteEl.value.trim();
+    if (!note) return;
+
+    btnPost.disabled = true;
+    commentStatusEl.textContent = 'Posting…';
+    commentStatusEl.style.color = 'var(--text-muted)';
+
+    const result = await window.redmine.issues.update(issue.id, { notes: note });
+    if (result.ok) {
+      // Reload the panel to show the new comment
+      openIssueDetail(partialIssue, root, onUpdate);
+    } else {
+      commentStatusEl.textContent = 'Error: ' + (result.error || 'unknown');
+      commentStatusEl.style.color = 'var(--danger)';
+      btnPost.disabled = false;
+    }
+  });
 }
