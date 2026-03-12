@@ -12,19 +12,22 @@
 </head>
 <body class="spotlight-body">
   <div id="spotlight">
-    <input id="spotlight-input" type="text" placeholder="New issue: type and press Enter…" autocomplete="off" />
-    <ul id="autocomplete-list"></ul>
-    <div id="spotlight-form" class="hidden">
-      <select id="project-select"></select>
-      <select id="tracker-select"></select>
-      <textarea id="issue-desc" placeholder="Description (optional)"></textarea>
+    <div id="spotlight-header">New Issue</div>
+    <form id="spotlight-form">
+      <input id="issue-title" type="text" placeholder="Title *" autocomplete="off" />
+      <div class="row-two">
+        <select id="project-select"><option value="">Project *</option></select>
+        <select id="tracker-select"><option value="">Tracker</option></select>
+      </div>
+      <select id="assignee-select" disabled><option value="">Assignee (select project first)</option></select>
+      <textarea id="issue-desc" placeholder="Description (optional)" rows="3"></textarea>
       <div class="clip-status" id="clip-status"></div>
       <div class="spotlight-actions">
         <button id="btn-clipboard" type="button">Paste image</button>
-        <button id="btn-submit">Create</button>
-        <button id="btn-cancel">Cancel</button>
+        <button id="btn-cancel" type="button">Cancel</button>
+        <button id="btn-submit" type="button">Create</button>
       </div>
-    </div>
+    </form>
   </div>
   <script type="module" src="js/spotlight.js"></script>
 </body>

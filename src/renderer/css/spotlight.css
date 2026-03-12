@@ -3,8 +3,6 @@ body.spotlight-body {
   overflow: hidden;
 }
 
-.hidden { display: none !important; }
-
 #spotlight {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -14,38 +12,13 @@ body.spotlight-body {
   padding: 0;
 }
 
-#spotlight-input {
-  width: 100%;
-  padding: 14px 16px;
-  font-size: 16px;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  background: var(--surface);
-  color: var(--text);
-}
-
-#spotlight-input:focus {
-  border-color: var(--border);
-  outline: none;
-}
-
-#autocomplete-list {
-  list-style: none;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-#autocomplete-list li {
-  padding: 10px 16px;
-  cursor: pointer;
+#spotlight-header {
+  padding: 12px 16px;
   font-size: 13px;
-  color: var(--text);
-}
-
-#autocomplete-list li:hover,
-#autocomplete-list li.selected {
-  background: var(--hover);
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 #spotlight-form {
@@ -53,6 +26,67 @@ body.spotlight-body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+#issue-title {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 15px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+#issue-title:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.row-two {
+  display: flex;
+  gap: 8px;
+}
+
+.row-two select {
+  flex: 1;
+}
+
+select {
+  padding: 7px 10px;
+  font-size: 13px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  width: 100%;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+textarea {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .spotlight-actions {
@@ -79,9 +113,9 @@ body.spotlight-body {
 }
 
 /* Validation error flash */
-#spotlight-input.error,
+#issue-title.error,
 #project-select.error {
-  border: 1px solid var(--danger) !important;
+  border-color: var(--danger) !important;
 }
 
 /* Clipboard paste button */
@@ -89,6 +123,7 @@ body.spotlight-body {
   background: var(--hover);
   color: var(--text-muted);
   font-size: 12px;
+  margin-right: auto;
 }
 
 .clip-status {

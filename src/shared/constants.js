@@ -5,6 +5,9 @@ const IPC = {
   CREDENTIALS_CLEAR: 'credentials:clear',
   CREDENTIALS_VALIDATE: 'credentials:validate',
 
+  // Projects
+  PROJECT_MEMBERS: 'project:members',
+
   // Issues
   ISSUES_FETCH: 'issues:fetch',
   ISSUES_GET: 'issues:get',

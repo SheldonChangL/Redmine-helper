@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld('redmine', {
     clear: () => ipcRenderer.invoke(IPC.CREDENTIALS_CLEAR),
     validate: () => ipcRenderer.invoke(IPC.CREDENTIALS_VALIDATE),
   },
+  projects: {
+    members: (id) => ipcRenderer.invoke(IPC.PROJECT_MEMBERS, id),
+  },
   issues: {
     fetch: () => ipcRenderer.invoke(IPC.ISSUES_FETCH),
     get: (id) => ipcRenderer.invoke(IPC.ISSUES_GET, id),

@@ -7,11 +7,15 @@ function register(mainWindow, spotlightWindow) {
     toggleWindow(mainWindow);
   });
 
-  // Open quick-create spotlight
+  // Toggle quick-create spotlight
   globalShortcut.register('CommandOrControl+Shift+N', () => {
     if (spotlightWindow) {
-      spotlightWindow.show();
-      spotlightWindow.focus();
+      if (spotlightWindow.isVisible()) {
+        spotlightWindow.hide();
+      } else {
+        spotlightWindow.show();
+        spotlightWindow.focus();
+      }
     }
   });
 }

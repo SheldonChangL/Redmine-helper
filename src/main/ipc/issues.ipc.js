@@ -53,6 +53,15 @@ function register(store) {
     }
   });
 
+  ipcMain.handle(IPC.PROJECT_MEMBERS, async (_e, projectId) => {
+    try {
+      const members = await redmine.fetchProjectMembers(projectId);
+      return { ok: true, members };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
   ipcMain.handle(IPC.ISSUES_FETCH_CHILDREN, async (_e, parentId) => {
     try {
       const issues = await redmine.fetchChildren(parentId);

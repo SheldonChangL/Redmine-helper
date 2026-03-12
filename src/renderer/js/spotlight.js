@@ -1,21 +1,17 @@
-import { fuzzySearch } from './components/autocomplete.js';
-
 let projects = [];
 let trackers = [];
-let acSelection = -1;
 
-const input       = document.getElementById('spotlight-input');
-const acList      = document.getElementById('autocomplete-list');
-const form        = document.getElementById('spotlight-form');
-const projectSel  = document.getElementById('project-select');
-const trackerSel  = document.getElementById('tracker-select');
-const descArea    = document.getElementById('issue-desc');
-const btnSubmit   = document.getElementById('btn-submit');
-const btnCancel   = document.getElementById('btn-cancel');
+const titleInput   = document.getElementById('issue-title');
+const form         = document.getElementById('spotlight-form');
+const projectSel   = document.getElementById('project-select');
+const trackerSel   = document.getElementById('tracker-select');
+const assigneeSel  = document.getElementById('assignee-select');
+const descArea     = document.getElementById('issue-desc');
+const btnSubmit    = document.getElementById('btn-submit');
+const btnCancel    = document.getElementById('btn-cancel');
 const btnClipboard = document.getElementById('btn-clipboard');
-const clipStatus  = document.getElementById('clip-status');
+const clipStatus   = document.getElementById('clip-status');
 
-// Pending clipboard upload token (attached when issue is created)
 let pendingClipToken = null;
 
 async function init() {
@@ -24,140 +20,94 @@ async function init() {
     window.redmine.settings.get('cachedTrackers').then(v => v || []),
   ]);
 
+  while (projectSel.options.length > 1) projectSel.remove(1);
+  projects.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    projectSel.appendChild(opt);
+  });
+
+  while (trackerSel.options.length > 1) trackerSel.remove(1);
   trackers.forEach(t => {
     const opt = document.createElement('option');
     opt.value = t.id;
     opt.textContent = t.name;
     trackerSel.appendChild(opt);
   });
-
-  input.focus();
 }
 
-// Re-init every time the window becomes visible so data stays fresh
-window.addEventListener('focus', init);
-init();
-
-// --- Autocomplete ---
-
-input.addEventListener('input', () => {
-  const q = input.value.trim();
-  acList.innerHTML = '';
-  acSelection = -1;
-
-  if (!q) return;
-
-  const results = fuzzySearch(projects, q);
-  results.forEach(p => {
-    const li = document.createElement('li');
-    li.textContent = p.name;
-    li.dataset.id = p.id;
-    li.addEventListener('mousedown', (e) => {
-      // prevent blur before the click registers
-      e.preventDefault();
-      pickProject(p);
-    });
-    acList.appendChild(li);
-  });
+// Re-init and reset each time the window becomes visible
+window.addEventListener('focus', () => {
+  init();
+  resetForm();
 });
 
-function pickProject(project) {
-  acList.innerHTML = '';
-  acSelection = -1;
-  // Set the project dropdown to the chosen project
-  let opt = projectSel.querySelector(`option[value="${project.id}"]`);
-  if (!opt) {
-    opt = document.createElement('option');
-    opt.value = project.id;
-    opt.textContent = project.name;
-    projectSel.appendChild(opt);
+init();
+
+// Load assignees when project changes
+projectSel.addEventListener('change', async () => {
+  const projectId = parseInt(projectSel.value, 10);
+  assigneeSel.innerHTML = '<option value="">Assignee</option>';
+  assigneeSel.disabled = true;
+  if (!projectId) return;
+
+  try {
+    const result = await window.redmine.projects.members(projectId);
+    if (result.ok && result.members.length > 0) {
+      result.members.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        assigneeSel.appendChild(opt);
+      });
+      assigneeSel.disabled = false;
+    }
+  } catch (_) {
+    // members fetch is best-effort — leave disabled
   }
-  projectSel.value = project.id;
-  showForm();
-}
+});
 
-function showForm() {
-  form.classList.remove('hidden');
-  descArea.focus();
-}
-
-function resetAll() {
-  input.value = '';
+function resetForm() {
+  titleInput.value = '';
   descArea.value = '';
-  acList.innerHTML = '';
-  acSelection = -1;
   pendingClipToken = null;
   clipStatus.textContent = '';
-  form.classList.add('hidden');
-  Array.from(projectSel.options).forEach(o => {
-    if (!projects.find(p => String(p.id) === o.value)) o.remove();
-  });
   projectSel.value = '';
+  trackerSel.value = '';
+  assigneeSel.innerHTML = '<option value="">Assignee (select project first)</option>';
+  assigneeSel.disabled = true;
 }
 
 function closeSpotlight() {
-  resetAll();
+  resetForm();
   window.redmine.spotlight.close();
 }
-
-// --- Keyboard navigation ---
-
-input.addEventListener('keydown', (e) => {
-  const items = acList.querySelectorAll('li');
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    acSelection = Math.min(acSelection + 1, items.length - 1);
-    syncSelection(items);
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    acSelection = Math.max(acSelection - 1, -1);
-    syncSelection(items);
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (acSelection >= 0 && items[acSelection]) {
-      const id = Number(items[acSelection].dataset.id);
-      const p = projects.find(proj => proj.id === id);
-      if (p) pickProject(p);
-    } else if (input.value.trim()) {
-      showForm();
-    }
-  } else if (e.key === 'Escape') {
-    closeSpotlight();
-  }
-});
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeSpotlight();
 });
 
-function syncSelection(items) {
-  items.forEach((li, i) => li.classList.toggle('selected', i === acSelection));
-}
-
-// --- Submit ---
-
-btnSubmit.addEventListener('click', submitIssue);
-
 form.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitIssue();
 });
 
+btnSubmit.addEventListener('click', submitIssue);
+
 async function submitIssue() {
-  const subject   = input.value.trim();
-  const projectId = parseInt(projectSel.value, 10);
-  const trackerId = parseInt(trackerSel.value, 10) || undefined;
+  const subject    = titleInput.value.trim();
+  const projectId  = parseInt(projectSel.value, 10);
+  const trackerId  = parseInt(trackerSel.value, 10) || undefined;
+  const assigneeId = parseInt(assigneeSel.value, 10) || undefined;
   const description = descArea.value.trim();
 
   if (!subject) {
-    input.classList.add('error');
-    input.focus();
-    setTimeout(() => input.classList.remove('error'), 1500);
+    flash(titleInput);
+    titleInput.focus();
     return;
   }
   if (!projectId) {
-    projectSel.classList.add('error');
-    setTimeout(() => projectSel.classList.remove('error'), 1500);
+    flash(projectSel);
     return;
   }
 
@@ -165,6 +115,7 @@ async function submitIssue() {
   btnSubmit.textContent = 'Creating…';
 
   const payload = { project_id: projectId, tracker_id: trackerId, subject, description };
+  if (assigneeId) payload.assigned_to_id = assigneeId;
   if (pendingClipToken) {
     payload.uploads = [{ token: pendingClipToken, filename: 'clipboard.png', content_type: 'image/png' }];
   }
@@ -182,9 +133,12 @@ async function submitIssue() {
   }
 }
 
-btnCancel.addEventListener('click', closeSpotlight);
+function flash(el) {
+  el.classList.add('error');
+  setTimeout(() => el.classList.remove('error'), 1500);
+}
 
-// --- Clipboard image upload ---
+btnCancel.addEventListener('click', closeSpotlight);
 
 btnClipboard.addEventListener('click', async () => {
   btnClipboard.disabled = true;

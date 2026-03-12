@@ -42,7 +42,7 @@ function createMainWindow() {
 function createSpotlightWindow() {
   spotlightWindow = new BrowserWindow({
     width: 560,
-    height: 320,
+    height: 440,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
