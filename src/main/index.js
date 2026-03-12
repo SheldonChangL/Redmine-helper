@@ -12,7 +12,7 @@ let spotlightWindow = null;
 // Track intended visibility separately from window state to prevent
 // the blur→hide race when Cmd+Shift+N is pressed while spotlight is open.
 let spotlightVisible = false;
-let blurHideTimer = null;
+let lastSpotlightHideTime = 0;
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -46,7 +46,7 @@ function createMainWindow() {
 
 function hideSpotlight() {
   spotlightVisible = false;
-  clearTimeout(blurHideTimer);
+  lastSpotlightHideTime = Date.now();
   if (spotlightWindow) spotlightWindow.hide();
 }
 
@@ -70,17 +70,18 @@ function createSpotlightWindow() {
 
   spotlightWindow.loadFile(path.join(__dirname, '../renderer/spotlight.html'));
 
-  // Delay the blur-hide so the hotkey handler can cancel it first.
-  spotlightWindow.on('blur', () => {
-    blurHideTimer = setTimeout(() => hideSpotlight(), 150);
-  });
+  // Hide on blur (click away). The toggleSpotlight timestamp check prevents
+  // the global shortcut from re-showing the window after this immediate hide.
+  spotlightWindow.on('blur', () => hideSpotlight());
 
   return spotlightWindow;
 }
 
 function toggleSpotlight() {
-  clearTimeout(blurHideTimer);
-  if (spotlightVisible) {
+  // If the window was just hidden (by blur or previous hide) within the last 300ms,
+  // treat this shortcut press as "confirm hide" rather than "show" — prevents
+  // the window from immediately re-appearing after blur fires before the shortcut.
+  if (spotlightVisible || (Date.now() - lastSpotlightHideTime < 300)) {
     hideSpotlight();
   } else {
     spotlightVisible = true;

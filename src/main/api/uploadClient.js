@@ -18,7 +18,8 @@ async function uploadBuffer(buffer, contentType = 'application/octet-stream') {
     {
       headers: {
         'X-Redmine-API-Key': creds.apiKey,
-        'Content-Type': contentType,
+        // Redmine's /uploads.json only accepts application/octet-stream
+        'Content-Type': 'application/octet-stream',
       },
       timeout: 30000,
     }
