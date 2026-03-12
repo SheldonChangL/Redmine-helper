@@ -103,6 +103,38 @@
   width: 100%;
 }
 
+/* ── Submit area ─────────────────────────────────────────────────────────── */
+
+.submit-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.submit-area .detail-save-status {
+  margin: 0;
+}
+
+.status-note-section {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-note-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}
+
 .detail-save-status {
   font-size: 12px;
   min-height: 16px;

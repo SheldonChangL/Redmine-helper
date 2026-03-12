@@ -105,6 +105,10 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
           ${statusOptions || `<option value="${issue.status.id}">${escHtml(issue.status.name)}</option>`}
         </select>
       </div>
+      <div id="status-note-section" class="status-note-section" style="display:none">
+        <label class="detail-label">Note for this status change</label>
+        <textarea id="detail-status-note" rows="2" placeholder="Optional note for this status change…"></textarea>
+      </div>
       <div class="detail-field">
         <label class="detail-label">Assignee</label>
         <select id="detail-assignee">${assigneeOptions}</select>
@@ -115,7 +119,10 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
       </div>
     </div>
 
-    <p id="detail-save-status" class="detail-save-status"></p>
+    <div class="submit-area">
+      <button class="btn btn-primary" id="btn-submit-changes" disabled>Submit Changes</button>
+      <p id="detail-save-status" class="detail-save-status"></p>
+    </div>
 
     <div id="detail-tree"></div>
 
@@ -156,42 +163,41 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
     progressLabel.textContent = progressInput.value + '%';
   });
 
-  // ── Save helpers ──────────────────────────────────────────────────────────
-  const saveStatus = detail.querySelector('#detail-save-status');
+  // ── Pending changes + submit ───────────────────────────────────────────────
+  const saveStatus        = detail.querySelector('#detail-save-status');
+  const submitBtn         = detail.querySelector('#btn-submit-changes');
+  const statusNoteSection = detail.querySelector('#status-note-section');
+  const statusNoteEl      = detail.querySelector('#detail-status-note');
+  const pendingChanges    = {};
 
-  async function save(fields) {
+  function updateSubmitBtn() {
+    submitBtn.disabled = Object.keys(pendingChanges).length === 0;
+  }
+
+  async function submitAllChanges(fields) {
+    submitBtn.disabled = true;
     saveStatus.textContent = 'Saving…';
     saveStatus.style.color = 'var(--text-muted)';
+
     const result = await window.redmine.issues.update(issue.id, fields);
     if (result.ok) {
       saveStatus.textContent = 'Saved';
       saveStatus.style.color = 'var(--success)';
       if (onUpdate) onUpdate({ id: issue.id, ...fields });
-      setTimeout(() => { saveStatus.textContent = ''; }, 2000);
-    } else {
-      saveStatus.textContent = 'Error: ' + (result.error || 'unknown');
-      saveStatus.style.color = 'var(--danger)';
-    }
-    return result.ok;
-  }
-
-  detail.querySelector('#detail-status').addEventListener('change', async (e) => {
-    const statusId = Number(e.target.value);
-    const result = await window.redmine.issues.update(issue.id, { status_id: statusId });
-    if (result.ok) {
-      saveStatus.textContent = 'Saved';
-      saveStatus.style.color = 'var(--success)';
-      if (onUpdate) onUpdate({ id: issue.id, status_id: statusId });
+      Object.keys(pendingChanges).forEach(k => delete pendingChanges[k]);
+      statusNoteSection.style.display = 'none';
+      statusNoteEl.value = '';
       setTimeout(() => { saveStatus.textContent = ''; }, 2000);
     } else if (result.errors && result.errors.length) {
-      showRequiredFieldsPrompt(statusId, result.errors);
+      showRequiredFieldsPrompt(fields, result.errors);
     } else {
       saveStatus.textContent = 'Error: ' + (result.error || 'unknown');
       saveStatus.style.color = 'var(--danger)';
+      updateSubmitBtn();
     }
-  });
+  }
 
-  function showRequiredFieldsPrompt(statusId, errors) {
+  function showRequiredFieldsPrompt(baseFields, errors) {
     const existing = detail.querySelector('.required-fields-prompt');
     if (existing) existing.remove();
 
@@ -219,7 +225,7 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
     saveStatus.style.color = 'var(--warning, orange)';
 
     prompt.querySelector('.btn-required-submit').addEventListener('click', async () => {
-      const fields = { status_id: statusId };
+      const fields = { ...baseFields };
       if (notesRequired) {
         const noteVal = prompt.querySelector('.required-notes')?.value.trim();
         if (!noteVal) {
@@ -229,24 +235,64 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
         fields.notes = noteVal;
       }
       prompt.remove();
-      await save(fields);
+      await submitAllChanges(fields);
     });
 
     prompt.querySelector('.btn-required-cancel').addEventListener('click', () => {
       detail.querySelector('#detail-status').value = issue.status.id;
+      delete pendingChanges.status_id;
+      statusNoteSection.style.display = 'none';
+      statusNoteEl.value = '';
       saveStatus.textContent = '';
       prompt.remove();
+      updateSubmitBtn();
     });
   }
 
-  detail.querySelector('#detail-assignee').addEventListener('change', (e) => {
-    const val = e.target.value;
-    save({ assigned_to_id: val ? Number(val) : '' });
+  // Status — stage change + show note field proactively
+  detail.querySelector('#detail-status').addEventListener('change', (e) => {
+    const statusId = Number(e.target.value);
+    if (statusId !== issue.status.id) {
+      pendingChanges.status_id = statusId;
+      statusNoteSection.style.display = '';
+    } else {
+      delete pendingChanges.status_id;
+      statusNoteSection.style.display = 'none';
+    }
+    updateSubmitBtn();
   });
 
-  progressInput.addEventListener('change', () =>
-    save({ done_ratio: Number(progressInput.value) })
-  );
+  // Assignee — stage change
+  detail.querySelector('#detail-assignee').addEventListener('change', (e) => {
+    const val = e.target.value;
+    const assigneeId = val ? Number(val) : '';
+    const originalAssigneeId = issue.assigned_to?.id ?? '';
+    if (assigneeId !== originalAssigneeId) {
+      pendingChanges.assigned_to_id = assigneeId;
+    } else {
+      delete pendingChanges.assigned_to_id;
+    }
+    updateSubmitBtn();
+  });
+
+  // Progress — stage change
+  progressInput.addEventListener('change', () => {
+    const val = Number(progressInput.value);
+    if (val !== doneRatio) {
+      pendingChanges.done_ratio = val;
+    } else {
+      delete pendingChanges.done_ratio;
+    }
+    updateSubmitBtn();
+  });
+
+  // Submit all staged changes
+  submitBtn.addEventListener('click', async () => {
+    const fields = { ...pendingChanges };
+    const note = statusNoteEl.value.trim();
+    if (note) fields.notes = note;
+    await submitAllChanges(fields);
+  });
 
   // ── Add comment ───────────────────────────────────────────────────────────
   const noteEl          = detail.querySelector('#detail-note');
