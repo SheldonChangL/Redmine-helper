@@ -1,4 +1,5 @@
 import { renderSettings } from './views/settings.js';
+import { renderIssueList } from './views/issueList.js';
 
 const content = document.getElementById('content');
 
@@ -23,7 +24,7 @@ async function navigate(view) {
   if (view === 'settings') {
     await renderSettings(content);
   } else if (view === 'issues') {
-    content.innerHTML = '<p style="color:var(--text-muted)">Issues view — coming in Phase 2.</p>';
+    await renderIssueList(content);
   } else if (view === 'time') {
     content.innerHTML = '<p style="color:var(--text-muted)">Time tracking — coming in Phase 3.</p>';
   }
