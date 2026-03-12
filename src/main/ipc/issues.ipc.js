@@ -70,6 +70,15 @@ function register(store) {
       return { ok: false, error: err.message };
     }
   });
+
+  ipcMain.handle(IPC.ISSUES_STATUSES, async () => {
+    try {
+      const statuses = await redmine.fetchStatuses();
+      return { ok: true, statuses };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
 }
 
 module.exports = { register };

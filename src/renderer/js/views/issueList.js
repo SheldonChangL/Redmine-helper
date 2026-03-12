@@ -1,13 +1,11 @@
 import { createFilterBar } from '../components/filterBar.js';
-import { renderMarkdown, wireLinks } from '../components/markdownRenderer.js';
+import { openIssueDetail } from './issueDetail.js';
 
 let _allIssues = [];
 let _projects = [];
 let _priorities = [];
 let _selectedId = null;
 let _notifyHandler = null; // current NOTIFY_ISSUE_CHANGED listener (replaced on each render)
-
-const PRIORITY_CLASS = { 1: 'priority-urgent', 2: 'priority-high', 3: 'priority-normal', 4: 'priority-low' };
 
 function priorityClass(issue) {
   const name = (issue.priority?.name || '').toLowerCase();
@@ -17,7 +15,7 @@ function priorityClass(issue) {
   return 'priority-normal';
 }
 
-function renderCards(issues, listEl) {
+function renderCards(issues, listEl, root) {
   listEl.innerHTML = '';
   if (!issues.length) {
     listEl.innerHTML = '<div class="empty-state">No issues match your filter.</div>';
@@ -31,7 +29,7 @@ function renderCards(issues, listEl) {
 
     card.innerHTML = `
       <div class="issue-card-header">
-        <span class="issue-id">#${issue.id}</span>
+        <span class="issue-id">#${escHtml(String(issue.id))}</span>
         <span class="issue-title">${escHtml(issue.subject)}</span>
         <span class="badge">${escHtml(issue.status?.name || '')}</span>
       </div>
@@ -42,7 +40,24 @@ function renderCards(issues, listEl) {
       </div>
     `;
 
-    card.addEventListener('click', () => openDetail(issue, listEl.closest('[data-view-root]')));
+    card.addEventListener('click', () => {
+      _selectedId = issue.id;
+      listEl.querySelectorAll('.issue-card').forEach(c =>
+        c.classList.toggle('selected', Number(c.dataset.id) === issue.id)
+      );
+      openIssueDetail(issue, root, (updated) => {
+        if (!updated) {
+          // Panel closed — deselect
+          _selectedId = null;
+          listEl.querySelectorAll('.issue-card').forEach(c => c.classList.remove('selected'));
+          return;
+        }
+        // Patch in-memory issue so the card reflects the change without a full reload
+        const idx = _allIssues.findIndex(i => i.id === issue.id);
+        if (idx !== -1) Object.assign(_allIssues[idx], updated);
+      });
+    });
+
     listEl.appendChild(card);
   });
 }
@@ -58,49 +73,6 @@ function applyFilter(filter) {
   return result;
 }
 
-async function openDetail(issue, root) {
-  _selectedId = issue.id;
-  root.querySelectorAll('.issue-card').forEach(c => c.classList.toggle('selected', Number(c.dataset.id) === issue.id));
-
-  let detail = root.querySelector('.issue-detail');
-  if (!detail) {
-    detail = document.createElement('div');
-    detail.className = 'issue-detail';
-    root.appendChild(detail);
-  }
-
-  detail.innerHTML = `
-    <div class="issue-detail-header">
-      <span class="issue-id">#${issue.id}</span>
-      <span class="issue-detail-title">${escHtml(issue.subject)}</span>
-      <button class="btn-close-detail" title="Close">×</button>
-    </div>
-    <div>
-      <span class="badge">${escHtml(issue.status?.name || '')}</span>
-      ${issue.priority ? `<span class="badge" style="margin-left:4px">${escHtml(issue.priority.name)}</span>` : ''}
-      ${issue.assigned_to ? `<span style="font-size:12px;color:var(--text-muted);margin-left:8px">Assigned: ${escHtml(issue.assigned_to.name)}</span>` : ''}
-    </div>
-    <div class="issue-body" id="detail-body">Loading…</div>
-  `;
-
-  detail.classList.add('open');
-  detail.querySelector('.btn-close-detail').addEventListener('click', () => {
-    detail.classList.remove('open');
-    _selectedId = null;
-    root.querySelectorAll('.issue-card').forEach(c => c.classList.remove('selected'));
-  });
-
-  // Fetch full issue with description
-  const result = await window.redmine.issues.get(issue.id);
-  const bodyEl = detail.querySelector('#detail-body');
-  if (result.ok) {
-    bodyEl.innerHTML = renderMarkdown(result.issue.description || '_No description._');
-    wireLinks(bodyEl);
-  } else {
-    bodyEl.textContent = 'Failed to load: ' + result.error;
-  }
-}
-
 export async function renderIssueList(container) {
   // Replace previous notification handler so navigating away and back doesn't stack listeners
   if (_notifyHandler) {
@@ -111,6 +83,7 @@ export async function renderIssueList(container) {
   container.setAttribute('data-view-root', '');
   container.innerHTML = `
     <link rel="stylesheet" href="css/issues.css" />
+    <link rel="stylesheet" href="css/tree.css" />
     <div class="issues-toolbar">
       <span class="issues-count" id="issues-count"></span>
       <button class="btn btn-primary" id="btn-refresh">Refresh</button>
@@ -121,8 +94,9 @@ export async function renderIssueList(container) {
     </div>
   `;
 
-  const listEl = container.querySelector('#issue-list');
-  const countEl = container.querySelector('#issues-count');
+  const root            = container;
+  const listEl          = container.querySelector('#issue-list');
+  const countEl         = container.querySelector('#issues-count');
   const filterContainer = container.querySelector('#filter-container');
 
   async function load() {
@@ -133,21 +107,21 @@ export async function renderIssueList(container) {
       return;
     }
     _allIssues = result.issues;
-    _projects = result.projects;
+    _projects  = result.projects;
     _priorities = result.priorities;
 
     createFilterBar(filterContainer, {
-      projects: _projects,
+      projects:   _projects,
       priorities: _priorities,
       onChange: (filter) => {
         const filtered = applyFilter(filter);
         countEl.textContent = `${filtered.length} of ${_allIssues.length} issues`;
-        renderCards(filtered, listEl);
+        renderCards(filtered, listEl, root);
       },
     });
 
     countEl.textContent = `${_allIssues.length} issues`;
-    renderCards(_allIssues, listEl);
+    renderCards(_allIssues, listEl, root);
   }
 
   container.querySelector('#btn-refresh').addEventListener('click', load);
@@ -160,5 +134,5 @@ export async function renderIssueList(container) {
 }
 
 function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

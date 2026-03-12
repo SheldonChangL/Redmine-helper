@@ -1,0 +1,110 @@
+/* ── Tree view — parent / sub-task hierarchy ─────────────────────────────── */
+
+.tree-section {
+  margin: 12px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.tree-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.tree-label-toggle {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tree-label-toggle:hover {
+  color: var(--accent);
+}
+
+.tree-toggle-icon {
+  font-size: 10px;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.12s;
+}
+
+.tree-node:hover {
+  background: var(--hover);
+}
+
+.tree-id {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tree-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.tree-parent .tree-id::before {
+  content: '↑ ';
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tree-children.tree-collapsed {
+  display: none;
+}
+
+/* ── Inline edit fields in detail panel ──────────────────────────────────── */
+
+.detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-field select,
+.detail-field input[type="range"] {
+  width: 100%;
+}
+
+.detail-save-status {
+  font-size: 12px;
+  min-height: 16px;
+  margin: 4px 0 8px;
+}

@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('redmine', {
     create: (fields) => ipcRenderer.invoke(IPC.ISSUES_CREATE, fields),
     update: (id, fields) => ipcRenderer.invoke(IPC.ISSUES_UPDATE, id, fields),
     fetchChildren: (id) => ipcRenderer.invoke(IPC.ISSUES_FETCH_CHILDREN, id),
+    statuses: () => ipcRenderer.invoke(IPC.ISSUES_STATUSES),
   },
   time: {
     log: (entry) => ipcRenderer.invoke(IPC.TIME_LOG, entry),
