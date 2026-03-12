@@ -1,0 +1,116 @@
+.time-log-layout {
+  display: flex;
+  gap: 24px;
+  height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.time-log-left {
+  flex: 0 0 260px;
+}
+
+.time-log-right {
+  flex: 1;
+  min-width: 0;
+}
+
+.time-log-heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+
+/* Timer widget */
+.timer-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.timer-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.timer-tab {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.timer-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.timer-display {
+  font-size: 36px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text);
+  text-align: center;
+  margin: 10px 0 4px;
+}
+
+.timer-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  min-height: 16px;
+  margin-bottom: 12px;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.timer-controls .btn {
+  flex: 1;
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+/* Time log form */
+.time-log-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.tl-status {
+  font-size: 12px;
+  min-height: 18px;
+  padding: 2px 0;
+}
+
+.tl-error {
+  color: var(--danger);
+}
+
+.tl-success {
+  color: var(--success, #22c55e);
+}
+
+/* Responsive: stack on narrow window */
+@media (max-width: 560px) {
+  .time-log-layout {
+    flex-direction: column;
+  }
+  .time-log-left {
+    flex: none;
+  }
+}

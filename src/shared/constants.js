@@ -13,6 +13,7 @@ const IPC = {
 
   // Time
   TIME_LOG: 'time:log',
+  TIME_ACTIVITIES: 'time:activities',
 
   // Upload
   UPLOAD_CLIPBOARD: 'upload:fromClipboard',

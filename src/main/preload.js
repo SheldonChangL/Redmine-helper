@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('redmine', {
   },
   time: {
     log: (entry) => ipcRenderer.invoke(IPC.TIME_LOG, entry),
+    activities: () => ipcRenderer.invoke(IPC.TIME_ACTIVITIES),
   },
   upload: {
     fromClipboard: (issueId) => ipcRenderer.invoke(IPC.UPLOAD_CLIPBOARD, issueId),

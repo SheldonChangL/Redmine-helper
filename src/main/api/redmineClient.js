@@ -82,6 +82,12 @@ async function updateIssue(id, fields) {
   await client.put(`/issues/${id}.json`, { issue: fields });
 }
 
+async function fetchTimeActivities() {
+  const client = getClient();
+  const res = await client.get('/enumerations/time_entry_activities.json');
+  return res.data.time_entry_activities;
+}
+
 async function fetchChildren(parentId) {
   const client = getClient();
   const res = await client.get('/issues.json', {
@@ -101,4 +107,5 @@ module.exports = {
   fetchPriorities,
   updateIssue,
   fetchChildren,
+  fetchTimeActivities,
 };

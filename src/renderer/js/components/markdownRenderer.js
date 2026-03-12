@@ -1,5 +1,5 @@
-import { marked } from '../../../node_modules/marked/lib/marked.esm.js';
-import DOMPurify from '../../../node_modules/dompurify/dist/purify.es.mjs';
+import { marked } from '../../../../node_modules/marked/lib/marked.esm.js';
+import DOMPurify from '../../../../node_modules/dompurify/dist/purify.es.mjs';
 
 // Override link renderer: open all links in system browser via IPC
 const renderer = new marked.Renderer();
