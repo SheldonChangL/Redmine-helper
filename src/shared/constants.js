@@ -8,6 +8,7 @@ const IPC = {
   // Issues
   ISSUES_FETCH: 'issues:fetch',
   ISSUES_GET: 'issues:get',
+  ISSUES_CREATE: 'issues:create',
   ISSUES_UPDATE: 'issues:update',
   ISSUES_FETCH_CHILDREN: 'issues:fetchChildren',
 

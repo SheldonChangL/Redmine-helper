@@ -35,6 +35,15 @@ function register(store) {
     }
   });
 
+  ipcMain.handle(IPC.ISSUES_CREATE, async (_e, fields) => {
+    try {
+      const issue = await redmine.createIssue(fields);
+      return { ok: true, issue };
+    } catch (err) {
+      return { ok: false, error: err.response?.data?.errors?.join(', ') || err.message };
+    }
+  });
+
   ipcMain.handle(IPC.ISSUES_UPDATE, async (_e, id, fields) => {
     try {
       await redmine.updateIssue(id, fields);

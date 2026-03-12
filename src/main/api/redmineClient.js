@@ -77,6 +77,12 @@ async function fetchPriorities() {
   return res.data.issue_priorities;
 }
 
+async function createIssue(fields) {
+  const client = getClient();
+  const res = await client.post('/issues.json', { issue: fields });
+  return res.data.issue;
+}
+
 async function updateIssue(id, fields) {
   const client = getClient();
   await client.put(`/issues/${id}.json`, { issue: fields });
@@ -105,6 +111,7 @@ module.exports = {
   fetchProjects,
   fetchTrackers,
   fetchPriorities,
+  createIssue,
   updateIssue,
   fetchChildren,
   fetchTimeActivities,

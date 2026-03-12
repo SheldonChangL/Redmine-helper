@@ -1,9 +1,10 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { createTray } = require('./tray');
 const { register: registerHotkeys, unregister: unregisterHotkeys } = require('./hotkeys');
 const { registerAll: registerIpc } = require('./ipc/index');
 const { initStore } = require('./cache/store');
+const { IPC } = require('../shared/constants');
 
 let mainWindow = null;
 let spotlightWindow = null;
@@ -72,6 +73,10 @@ app.whenReady().then(async () => {
 
   createTray(mainWindow);
   registerHotkeys(mainWindow, spotlightWindow);
+
+  ipcMain.on(IPC.SPOTLIGHT_CLOSE, () => {
+    if (spotlightWindow) spotlightWindow.hide();
+  });
 
   if (process.platform === 'darwin') {
     app.dock.hide();

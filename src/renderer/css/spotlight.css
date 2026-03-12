@@ -3,6 +3,8 @@ body.spotlight-body {
   overflow: hidden;
 }
 
+.hidden { display: none !important; }
+
 #spotlight {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -74,4 +76,23 @@ body.spotlight-body {
 #btn-cancel {
   background: var(--hover);
   color: var(--text);
+}
+
+/* Validation error flash */
+#spotlight-input.error,
+#project-select.error {
+  border: 1px solid var(--danger) !important;
+}
+
+/* Clipboard paste button */
+#btn-clipboard {
+  background: var(--hover);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.clip-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-height: 16px;
 }
