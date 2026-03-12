@@ -1,0 +1,52 @@
+appId: com.sheldonchangl.redmine-helper
+productName: Redmine Helper
+copyright: Copyright © 2026 SheldonChangL
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - src/**/*
+  - package.json
+  - "!src/renderer/**/*.map"
+
+main: src/main/index.js
+
+mac:
+  category: public.app-category.productivity
+  icon: build/icons/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+
+win:
+  icon: build/icons/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+
+linux:
+  icon: build/icons/icon.png
+  category: Office
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+
+publish:
+  provider: github
+  owner: SheldonChangL
+  repo: Redmine-helper

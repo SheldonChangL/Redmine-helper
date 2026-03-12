@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Quick Create</title>
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/spotlight.css" />
+</head>
+<body class="spotlight-body">
+  <div id="spotlight">
+    <input id="spotlight-input" type="text" placeholder="New issue: type and press Enter…" autocomplete="off" />
+    <ul id="autocomplete-list"></ul>
+    <div id="spotlight-form" class="hidden">
+      <select id="project-select"></select>
+      <select id="tracker-select"></select>
+      <textarea id="issue-desc" placeholder="Description (optional)"></textarea>
+      <div class="spotlight-actions">
+        <button id="btn-submit">Create</button>
+        <button id="btn-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="js/spotlight.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+:root {
+  --bg: #f5f5f5;
+  --sidebar-bg: #ffffff;
+  --surface: #ffffff;
+  --border: #e0e0e0;
+  --text: #1a1a1a;
+  --text-muted: #666666;
+  --accent: #c0392b;
+  --accent-hover: #a93226;
+  --hover: #f0f0f0;
+  --tag-bg: #e8f0fe;
+  --tag-text: #1a56db;
+  --success: #27ae60;
+  --warning: #f39c12;
+  --danger: #e74c3c;
+  --input-bg: #ffffff;
+  --input-border: #cccccc;
+  --scrollbar: #cccccc;
+}
