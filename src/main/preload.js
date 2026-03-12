@@ -8,9 +8,13 @@ contextBridge.exposeInMainWorld('redmine', {
     clear: () => ipcRenderer.invoke(IPC.CREDENTIALS_CLEAR),
     validate: () => ipcRenderer.invoke(IPC.CREDENTIALS_VALIDATE),
   },
+  projects: {
+    members: (id) => ipcRenderer.invoke(IPC.PROJECT_MEMBERS, id),
+  },
   issues: {
     fetch: () => ipcRenderer.invoke(IPC.ISSUES_FETCH),
     get: (id) => ipcRenderer.invoke(IPC.ISSUES_GET, id),
+    create: (fields) => ipcRenderer.invoke(IPC.ISSUES_CREATE, fields),
     update: (id, fields) => ipcRenderer.invoke(IPC.ISSUES_UPDATE, id, fields),
     fetchChildren: (id) => ipcRenderer.invoke(IPC.ISSUES_FETCH_CHILDREN, id),
   },
@@ -19,7 +23,11 @@ contextBridge.exposeInMainWorld('redmine', {
     activities: () => ipcRenderer.invoke(IPC.TIME_ACTIVITIES),
   },
   upload: {
-    fromClipboard: (issueId) => ipcRenderer.invoke(IPC.UPLOAD_CLIPBOARD, issueId),
+    fromClipboard: () => ipcRenderer.invoke(IPC.UPLOAD_CLIPBOARD),
+    file: (bytes, filename, contentType) => ipcRenderer.invoke(IPC.UPLOAD_FILE, bytes, filename, contentType),
+  },
+  spotlight: {
+    close: () => ipcRenderer.send(IPC.SPOTLIGHT_CLOSE),
   },
   settings: {
     get: (key) => ipcRenderer.invoke(IPC.SETTINGS_GET, key),

@@ -5,9 +5,13 @@ const IPC = {
   CREDENTIALS_CLEAR: 'credentials:clear',
   CREDENTIALS_VALIDATE: 'credentials:validate',
 
+  // Projects
+  PROJECT_MEMBERS: 'project:members',
+
   // Issues
   ISSUES_FETCH: 'issues:fetch',
   ISSUES_GET: 'issues:get',
+  ISSUES_CREATE: 'issues:create',
   ISSUES_UPDATE: 'issues:update',
   ISSUES_FETCH_CHILDREN: 'issues:fetchChildren',
 
@@ -17,6 +21,7 @@ const IPC = {
 
   // Upload
   UPLOAD_CLIPBOARD: 'upload:fromClipboard',
+  UPLOAD_FILE: 'upload:file',
 
   // Notifications
   NOTIFY_ISSUE_CHANGED: 'notify:issueChanged',

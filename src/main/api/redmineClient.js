@@ -77,6 +77,22 @@ async function fetchPriorities() {
   return res.data.issue_priorities;
 }
 
+async function fetchProjectMembers(projectId) {
+  const client = getClient();
+  const res = await client.get(`/projects/${projectId}/memberships.json`, {
+    params: { limit: 100 },
+  });
+  return res.data.memberships
+    .filter(m => m.user)
+    .map(m => ({ id: m.user.id, name: m.user.name }));
+}
+
+async function createIssue(fields) {
+  const client = getClient();
+  const res = await client.post('/issues.json', { issue: fields });
+  return res.data.issue;
+}
+
 async function updateIssue(id, fields) {
   const client = getClient();
   await client.put(`/issues/${id}.json`, { issue: fields });
@@ -105,6 +121,8 @@ module.exports = {
   fetchProjects,
   fetchTrackers,
   fetchPriorities,
+  fetchProjectMembers,
+  createIssue,
   updateIssue,
   fetchChildren,
   fetchTimeActivities,

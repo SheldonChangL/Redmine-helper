@@ -4,6 +4,7 @@ const credentials = require('../credentials');
 const redmine = require('../api/redmineClient');
 const issuesIpc = require('./issues.ipc');
 const timeIpc = require('./time.ipc');
+const uploadIpc = require('./upload.ipc');
 
 function registerAll(store) {
   const getFromStore = (key) => store ? store.get(key) : undefined;
@@ -39,6 +40,9 @@ function registerAll(store) {
 
   // Time
   timeIpc.register();
+
+  // Upload
+  uploadIpc.register();
 }
 
 module.exports = { registerAll };

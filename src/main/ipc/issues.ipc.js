@@ -35,10 +35,28 @@ function register(store) {
     }
   });
 
+  ipcMain.handle(IPC.ISSUES_CREATE, async (_e, fields) => {
+    try {
+      const issue = await redmine.createIssue(fields);
+      return { ok: true, issue };
+    } catch (err) {
+      return { ok: false, error: err.response?.data?.errors?.join(', ') || err.message };
+    }
+  });
+
   ipcMain.handle(IPC.ISSUES_UPDATE, async (_e, id, fields) => {
     try {
       await redmine.updateIssue(id, fields);
       return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle(IPC.PROJECT_MEMBERS, async (_e, projectId) => {
+    try {
+      const members = await redmine.fetchProjectMembers(projectId);
+      return { ok: true, members };
     } catch (err) {
       return { ok: false, error: err.message };
     }
