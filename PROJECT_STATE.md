@@ -44,10 +44,11 @@ PR: https://github.com/SheldonChangL/Redmine-helper/pull/9
   ../../../node_modules (→ src/node_modules, wrong) to ../../../../node_modules
   (→ project root). Markdown rendering in issue detail panel now works.
 
-## Next Step (after PR #9 is merged)
-Phase 4 — Quick Creation & Attachments (Issue #4)
-- Spotlight command bar for quick issue creation
-- Clipboard image upload to Redmine attachments API
+## Next Step (after PR #10 is merged)
+Phase 5 — Notifications & Polish (Issue #5)
+- Background polling for issue changes
+- Native OS notifications
+- Dark mode auto-switch
 
 ## Blockers
 None currently.
