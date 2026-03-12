@@ -5,9 +5,10 @@ const credentials = require('../credentials');
  * Upload a binary buffer to Redmine's /uploads.json endpoint.
  * Returns the upload token string.
  * @param {Buffer} buffer
+ * @param {string} contentType
  * @returns {Promise<string>} token
  */
-async function uploadImage(buffer) {
+async function uploadBuffer(buffer, contentType = 'application/octet-stream') {
   const creds = credentials.load();
   if (!creds) throw new Error('No credentials configured.');
 
@@ -17,7 +18,7 @@ async function uploadImage(buffer) {
     {
       headers: {
         'X-Redmine-API-Key': creds.apiKey,
-        'Content-Type': 'application/octet-stream',
+        'Content-Type': contentType,
       },
       timeout: 30000,
     }
@@ -25,4 +26,4 @@ async function uploadImage(buffer) {
   return res.data.upload.token;
 }
 
-module.exports = { uploadImage };
+module.exports = { uploadBuffer };

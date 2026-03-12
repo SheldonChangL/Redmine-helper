@@ -13,7 +13,7 @@ body.spotlight-body {
 }
 
 #spotlight-header {
-  padding: 12px 16px;
+  padding: 10px 16px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
@@ -22,15 +22,15 @@ body.spotlight-body {
 }
 
 #spotlight-form {
-  padding: 12px 16px;
+  padding: 10px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 #issue-title {
   width: 100%;
-  padding: 8px 10px;
+  padding: 7px 10px;
   font-size: 15px;
   border: 1px solid var(--input-border);
   border-radius: 6px;
@@ -53,7 +53,7 @@ body.spotlight-body {
 }
 
 select {
-  padding: 7px 10px;
+  padding: 6px 10px;
   font-size: 13px;
   border: 1px solid var(--input-border);
   border-radius: 6px;
@@ -74,7 +74,7 @@ select:disabled {
 
 textarea {
   width: 100%;
-  padding: 7px 10px;
+  padding: 6px 10px;
   font-size: 13px;
   border: 1px solid var(--input-border);
   border-radius: 6px;
@@ -89,17 +89,71 @@ textarea:focus {
   border-color: var(--accent);
 }
 
+/* Attachment chips */
+#attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 6px 3px 4px;
+  font-size: 11px;
+  color: var(--text);
+  max-width: 160px;
+}
+
+.attachment-preview {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.attachment-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.attachment-remove:hover {
+  color: var(--danger);
+}
+
+/* Actions row */
 .spotlight-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
   justify-content: flex-end;
 }
 
-.spotlight-actions button {
-  padding: 6px 14px;
+.spotlight-actions button,
+#btn-file-label {
+  padding: 5px 12px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12px;
   border: none;
+  cursor: pointer;
 }
 
 #btn-submit {
@@ -112,22 +166,25 @@ textarea:focus {
   color: var(--text);
 }
 
+#btn-clipboard,
+#btn-file-label {
+  background: var(--hover);
+  color: var(--text-muted);
+  margin-right: auto;
+}
+
+#btn-file-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Hide the native file input; use the label instead */
+#file-input {
+  display: none;
+}
+
 /* Validation error flash */
 #issue-title.error,
 #project-select.error {
   border-color: var(--danger) !important;
-}
-
-/* Clipboard paste button */
-#btn-clipboard {
-  background: var(--hover);
-  color: var(--text-muted);
-  font-size: 12px;
-  margin-right: auto;
-}
-
-.clip-status {
-  font-size: 11px;
-  color: var(--text-muted);
-  min-height: 16px;
 }

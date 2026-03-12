@@ -21,6 +21,7 @@ const IPC = {
 
   // Upload
   UPLOAD_CLIPBOARD: 'upload:fromClipboard',
+  UPLOAD_FILE: 'upload:file',
 
   // Notifications
   NOTIFY_ISSUE_CHANGED: 'notify:issueChanged',

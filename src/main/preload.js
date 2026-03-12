@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('redmine', {
   },
   upload: {
     fromClipboard: () => ipcRenderer.invoke(IPC.UPLOAD_CLIPBOARD),
+    file: (bytes, filename, contentType) => ipcRenderer.invoke(IPC.UPLOAD_FILE, bytes, filename, contentType),
   },
   spotlight: {
     close: () => ipcRenderer.send(IPC.SPOTLIGHT_CLOSE),

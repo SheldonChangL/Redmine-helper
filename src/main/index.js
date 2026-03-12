@@ -9,6 +9,11 @@ const { IPC } = require('../shared/constants');
 let mainWindow = null;
 let spotlightWindow = null;
 
+// Track intended visibility separately from window state to prevent
+// the blur→hide race when Cmd+Shift+N is pressed while spotlight is open.
+let spotlightVisible = false;
+let blurHideTimer = null;
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -39,10 +44,16 @@ function createMainWindow() {
   return mainWindow;
 }
 
+function hideSpotlight() {
+  spotlightVisible = false;
+  clearTimeout(blurHideTimer);
+  if (spotlightWindow) spotlightWindow.hide();
+}
+
 function createSpotlightWindow() {
   spotlightWindow = new BrowserWindow({
     width: 560,
-    height: 440,
+    height: 480,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -59,9 +70,23 @@ function createSpotlightWindow() {
 
   spotlightWindow.loadFile(path.join(__dirname, '../renderer/spotlight.html'));
 
-  spotlightWindow.on('blur', () => spotlightWindow.hide());
+  // Delay the blur-hide so the hotkey handler can cancel it first.
+  spotlightWindow.on('blur', () => {
+    blurHideTimer = setTimeout(() => hideSpotlight(), 150);
+  });
 
   return spotlightWindow;
+}
+
+function toggleSpotlight() {
+  clearTimeout(blurHideTimer);
+  if (spotlightVisible) {
+    hideSpotlight();
+  } else {
+    spotlightVisible = true;
+    spotlightWindow.show();
+    spotlightWindow.focus();
+  }
 }
 
 app.whenReady().then(async () => {
@@ -72,11 +97,9 @@ app.whenReady().then(async () => {
   spotlightWindow = createSpotlightWindow();
 
   createTray(mainWindow);
-  registerHotkeys(mainWindow, spotlightWindow);
+  registerHotkeys(mainWindow, toggleSpotlight);
 
-  ipcMain.on(IPC.SPOTLIGHT_CLOSE, () => {
-    if (spotlightWindow) spotlightWindow.hide();
-  });
+  ipcMain.on(IPC.SPOTLIGHT_CLOSE, () => hideSpotlight());
 });
 
 app.on('before-quit', () => {

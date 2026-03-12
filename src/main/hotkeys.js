@@ -1,23 +1,14 @@
 const { globalShortcut } = require('electron');
 const { toggleWindow } = require('./tray');
 
-function register(mainWindow, spotlightWindow) {
+function register(mainWindow, toggleSpotlight) {
   // Toggle main window
   globalShortcut.register('CommandOrControl+Shift+R', () => {
     toggleWindow(mainWindow);
   });
 
   // Toggle quick-create spotlight
-  globalShortcut.register('CommandOrControl+Shift+N', () => {
-    if (spotlightWindow) {
-      if (spotlightWindow.isVisible()) {
-        spotlightWindow.hide();
-      } else {
-        spotlightWindow.show();
-        spotlightWindow.focus();
-      }
-    }
-  });
+  globalShortcut.register('CommandOrControl+Shift+N', toggleSpotlight);
 }
 
 function unregister() {

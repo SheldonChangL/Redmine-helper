@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;" />
   <title>Quick Create</title>
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/theme-light.css" id="theme-light" />
@@ -20,10 +20,12 @@
         <select id="tracker-select"><option value="">Tracker</option></select>
       </div>
       <select id="assignee-select" disabled><option value="">Assignee (select project first)</option></select>
-      <textarea id="issue-desc" placeholder="Description (optional)" rows="3"></textarea>
-      <div class="clip-status" id="clip-status"></div>
+      <textarea id="issue-desc" placeholder="Description (optional)" rows="2"></textarea>
+      <div id="attachment-list"></div>
       <div class="spotlight-actions">
-        <button id="btn-clipboard" type="button">Paste image</button>
+        <button id="btn-clipboard" type="button">Paste screenshot</button>
+        <label id="btn-file-label" for="file-input">Attach files</label>
+        <input id="file-input" type="file" multiple accept="image/*,.pdf,.txt,.zip" />
         <button id="btn-cancel" type="button">Cancel</button>
         <button id="btn-submit" type="button">Create</button>
       </div>

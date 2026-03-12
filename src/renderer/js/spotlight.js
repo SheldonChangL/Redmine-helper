@@ -10,9 +10,11 @@ const descArea     = document.getElementById('issue-desc');
 const btnSubmit    = document.getElementById('btn-submit');
 const btnCancel    = document.getElementById('btn-cancel');
 const btnClipboard = document.getElementById('btn-clipboard');
-const clipStatus   = document.getElementById('clip-status');
+const fileInput    = document.getElementById('file-input');
+const attachList   = document.getElementById('attachment-list');
 
-let pendingClipToken = null;
+// [{ token, filename, contentType, previewDataUrl? }]
+let pendingUploads = [];
 
 async function init() {
   [projects, trackers] = await Promise.all([
@@ -37,7 +39,6 @@ async function init() {
   });
 }
 
-// Re-init and reset each time the window becomes visible
 window.addEventListener('focus', () => {
   init();
   resetForm();
@@ -64,15 +65,106 @@ projectSel.addEventListener('change', async () => {
       assigneeSel.disabled = false;
     }
   } catch (_) {
-    // members fetch is best-effort — leave disabled
+    // best-effort
   }
 });
+
+// --- Attachments ---
+
+function renderAttachments() {
+  attachList.innerHTML = '';
+  pendingUploads.forEach((att, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'attachment-chip';
+
+    if (att.previewDataUrl) {
+      const img = document.createElement('img');
+      img.src = att.previewDataUrl;
+      img.className = 'attachment-preview';
+      chip.appendChild(img);
+    }
+
+    const name = document.createElement('span');
+    name.className = 'attachment-name';
+    name.textContent = att.filename;
+    chip.appendChild(name);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'attachment-remove';
+    remove.textContent = '×';
+    remove.addEventListener('click', () => {
+      pendingUploads.splice(i, 1);
+      renderAttachments();
+    });
+    chip.appendChild(remove);
+
+    attachList.appendChild(chip);
+  });
+}
+
+btnClipboard.addEventListener('click', async () => {
+  btnClipboard.disabled = true;
+  btnClipboard.textContent = 'Uploading…';
+
+  const result = await window.redmine.upload.fromClipboard();
+  btnClipboard.disabled = false;
+  btnClipboard.textContent = 'Paste screenshot';
+
+  if (result.ok) {
+    pendingUploads.push({
+      token: result.token,
+      filename: result.filename,
+      contentType: result.contentType,
+      previewDataUrl: result.previewDataUrl,
+    });
+    renderAttachments();
+  } else {
+    // Show error briefly in the button
+    btnClipboard.textContent = result.error || 'No image';
+    setTimeout(() => { btnClipboard.textContent = 'Paste screenshot'; }, 2000);
+  }
+});
+
+fileInput.addEventListener('change', async () => {
+  const files = Array.from(fileInput.files);
+  fileInput.value = '';
+  if (!files.length) return;
+
+  for (const file of files) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const isImage = file.type.startsWith('image/');
+
+    // Generate local preview before upload (images only)
+    let previewDataUrl = null;
+    if (isImage) {
+      previewDataUrl = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    const result = await window.redmine.upload.file(bytes, file.name, file.type || 'application/octet-stream');
+    if (result.ok) {
+      pendingUploads.push({
+        token: result.token,
+        filename: result.filename,
+        contentType: result.contentType,
+        previewDataUrl,
+      });
+      renderAttachments();
+    }
+  }
+});
+
+// --- Form ---
 
 function resetForm() {
   titleInput.value = '';
   descArea.value = '';
-  pendingClipToken = null;
-  clipStatus.textContent = '';
+  pendingUploads = [];
+  renderAttachments();
   projectSel.value = '';
   trackerSel.value = '';
   assigneeSel.innerHTML = '<option value="">Assignee (select project first)</option>';
@@ -101,23 +193,20 @@ async function submitIssue() {
   const assigneeId = parseInt(assigneeSel.value, 10) || undefined;
   const description = descArea.value.trim();
 
-  if (!subject) {
-    flash(titleInput);
-    titleInput.focus();
-    return;
-  }
-  if (!projectId) {
-    flash(projectSel);
-    return;
-  }
+  if (!subject) { flash(titleInput); titleInput.focus(); return; }
+  if (!projectId) { flash(projectSel); return; }
 
   btnSubmit.disabled = true;
   btnSubmit.textContent = 'Creating…';
 
   const payload = { project_id: projectId, tracker_id: trackerId, subject, description };
   if (assigneeId) payload.assigned_to_id = assigneeId;
-  if (pendingClipToken) {
-    payload.uploads = [{ token: pendingClipToken, filename: 'clipboard.png', content_type: 'image/png' }];
+  if (pendingUploads.length) {
+    payload.uploads = pendingUploads.map(u => ({
+      token: u.token,
+      filename: u.filename,
+      content_type: u.contentType,
+    }));
   }
 
   const result = await window.redmine.issues.create(payload);
@@ -139,19 +228,3 @@ function flash(el) {
 }
 
 btnCancel.addEventListener('click', closeSpotlight);
-
-btnClipboard.addEventListener('click', async () => {
-  btnClipboard.disabled = true;
-  clipStatus.textContent = 'Uploading…';
-
-  const result = await window.redmine.upload.fromClipboard();
-  btnClipboard.disabled = false;
-
-  if (result.ok) {
-    pendingClipToken = result.token;
-    clipStatus.textContent = 'Image ready — will attach on create.';
-  } else {
-    pendingClipToken = null;
-    clipStatus.textContent = result.error || 'Upload failed.';
-  }
-});
