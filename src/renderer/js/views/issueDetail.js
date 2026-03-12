@@ -175,9 +175,69 @@ export async function openIssueDetail(partialIssue, root, onUpdate) {
     return result.ok;
   }
 
-  detail.querySelector('#detail-status').addEventListener('change', (e) =>
-    save({ status_id: Number(e.target.value) })
-  );
+  detail.querySelector('#detail-status').addEventListener('change', async (e) => {
+    const statusId = Number(e.target.value);
+    const result = await window.redmine.issues.update(issue.id, { status_id: statusId });
+    if (result.ok) {
+      saveStatus.textContent = 'Saved';
+      saveStatus.style.color = 'var(--success)';
+      if (onUpdate) onUpdate({ id: issue.id, status_id: statusId });
+      setTimeout(() => { saveStatus.textContent = ''; }, 2000);
+    } else if (result.errors && result.errors.length) {
+      showRequiredFieldsPrompt(statusId, result.errors);
+    } else {
+      saveStatus.textContent = 'Error: ' + (result.error || 'unknown');
+      saveStatus.style.color = 'var(--danger)';
+    }
+  });
+
+  function showRequiredFieldsPrompt(statusId, errors) {
+    const existing = detail.querySelector('.required-fields-prompt');
+    if (existing) existing.remove();
+
+    const notesRequired = errors.some(e => /notes/i.test(e));
+    const otherErrors   = errors.filter(e => !/notes/i.test(e));
+
+    const prompt = document.createElement('div');
+    prompt.className = 'required-fields-prompt';
+    prompt.innerHTML = `
+      <div class="required-fields-header">Required fields for this status change:</div>
+      ${notesRequired ? `
+        <div class="required-field">
+          <label class="detail-label">Notes (required)</label>
+          <textarea class="required-notes" rows="3" placeholder="Add a note for this status change…"></textarea>
+        </div>` : ''}
+      ${otherErrors.map(e => `<p class="required-field-error">${escHtml(e)}</p>`).join('')}
+      <div class="required-fields-actions">
+        <button class="btn btn-primary btn-required-submit">Save</button>
+        <button class="btn btn-required-cancel">Cancel</button>
+      </div>
+    `;
+
+    saveStatus.insertAdjacentElement('afterend', prompt);
+    saveStatus.textContent = 'Required fields missing — see below.';
+    saveStatus.style.color = 'var(--warning, orange)';
+
+    prompt.querySelector('.btn-required-submit').addEventListener('click', async () => {
+      const fields = { status_id: statusId };
+      if (notesRequired) {
+        const noteVal = prompt.querySelector('.required-notes')?.value.trim();
+        if (!noteVal) {
+          prompt.querySelector('.required-notes').style.borderColor = 'var(--danger)';
+          return;
+        }
+        fields.notes = noteVal;
+      }
+      prompt.remove();
+      await save(fields);
+    });
+
+    prompt.querySelector('.btn-required-cancel').addEventListener('click', () => {
+      detail.querySelector('#detail-status').value = issue.status.id;
+      saveStatus.textContent = '';
+      prompt.remove();
+    });
+  }
 
   detail.querySelector('#detail-assignee').addEventListener('change', (e) => {
     const val = e.target.value;

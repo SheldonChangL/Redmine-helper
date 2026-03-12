@@ -109,6 +109,54 @@
   margin: 4px 0 8px;
 }
 
+/* ── Required-fields prompt ──────────────────────────────────────────────── */
+
+.required-fields-prompt {
+  background: var(--bg-secondary, rgba(255,255,255,0.04));
+  border: 1px solid var(--warning, orange);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.required-fields-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warning, orange);
+}
+
+.required-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.required-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.required-field-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin: 0;
+}
+
+.required-fields-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* ── Comments ─────────────────────────────────────────────────────────────── */
 
 .comments-section {

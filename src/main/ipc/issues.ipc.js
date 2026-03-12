@@ -49,7 +49,8 @@ function register(store) {
       await redmine.updateIssue(id, fields);
       return { ok: true };
     } catch (err) {
-      return { ok: false, error: err.message };
+      const errors = err.response?.data?.errors || [];
+      return { ok: false, error: errors.join(', ') || err.message, errors };
     }
   });
 
