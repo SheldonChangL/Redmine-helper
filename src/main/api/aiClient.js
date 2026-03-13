@@ -121,23 +121,23 @@ function generate(prompt, backend, model, onToken, onDone, onError) {
   }
 
   if (backend === 'claude') {
-    // `claude -p "<prompt>"` — print/non-interactive mode.
-    // Passing via stdin causes claude to hang waiting for interactive input;
-    // passing as a CLI arg works for prompts up to ~200 KB (within ARG_MAX).
+    // `claude -p` reads the prompt from stdin in print/non-interactive mode.
+    // Passing prompt as a positional arg after -p does not work with Claude Code CLI.
+    // This is slow (API call); the UI progress indicator shows it is working.
     return spawnStreaming({
-      bin, args: ['-p', prompt],
+      bin, args: ['-p'],
+      stdin: prompt,
       label: 'Claude CLI',
-      filterStderr: false, // surface all stderr (auth errors, warnings, etc.)
+      filterStderr: false,
       onToken, onDone, onError,
     });
   }
 
   if (backend === 'codex') {
-    // Codex CLI checks process.stdin.isTTY and errors if stdin is a pipe.
-    // --full-auto disables interactive approval prompts; pass prompt as arg
-    // and set stdin to 'ignore' (mapped to /dev/null) to avoid the TTY check.
+    // Codex CLI requires stdin to be a TTY — set stdinMode:'ignore' (/dev/null)
+    // and pass the prompt as a positional arg with --full-auto for non-interactive mode.
     return spawnStreaming({
-      bin, args: ['--full-auto', '--quiet', prompt],
+      bin, args: ['--full-auto', prompt],
       stdinMode: 'ignore',
       label: 'Codex CLI',
       filterStderr: false,
