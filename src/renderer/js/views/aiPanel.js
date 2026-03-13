@@ -227,14 +227,18 @@ export async function renderAiPanel(container) {
 
   // ── Load projects for team mode ───────────────────────────────────────────
   async function loadProjects() {
-    const result = await window.redmine.projects.list();
-    if (!result.ok) {
-      teamProjectEl.innerHTML = `<option value="">Failed: ${escHtml(result.error)}</option>`;
-      return;
+    try {
+      const result = await window.redmine.projects.list();
+      if (!result.ok) {
+        teamProjectEl.innerHTML = `<option value="">Failed to load projects</option>`;
+        return;
+      }
+      teamProjectEl.innerHTML =
+        `<option value="">— select a project —</option>` +
+        result.projects.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
+    } catch (err) {
+      teamProjectEl.innerHTML = `<option value="">Error: ${escHtml(err.message)}</option>`;
     }
-    teamProjectEl.innerHTML =
-      `<option value="">— select a project —</option>` +
-      result.projects.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
   }
 
   teamProjectEl.addEventListener('change', async () => {
@@ -242,13 +246,17 @@ export async function renderAiPanel(container) {
     teamMembersEl.innerHTML = '<option disabled>Loading…</option>';
     if (!projectId) return;
 
-    const result = await window.redmine.projects.members(projectId);
-    if (result.ok) {
-      teamMembersEl.innerHTML = result.members.map(m =>
-        `<option value="${m.id}">${escHtml(m.name)}</option>`
-      ).join('');
-    } else {
-      teamMembersEl.innerHTML = `<option disabled>Failed: ${escHtml(result.error)}</option>`;
+    try {
+      const result = await window.redmine.projects.members(projectId);
+      if (result.ok) {
+        teamMembersEl.innerHTML = result.members.map(m =>
+          `<option value="${m.id}">${escHtml(m.name)}</option>`
+        ).join('');
+      } else {
+        teamMembersEl.innerHTML = `<option disabled>Failed: ${escHtml(result.error)}</option>`;
+      }
+    } catch (err) {
+      teamMembersEl.innerHTML = `<option disabled>Error: ${escHtml(err.message)}</option>`;
     }
   });
 
@@ -260,13 +268,17 @@ export async function renderAiPanel(container) {
     if (selectedIds.length === 0) { setStatus(teamStatusEl, 'Select at least one member.', 'error'); return; }
 
     setStatus(teamStatusEl, 'Loading tickets…');
-    const result = await window.redmine.issues.fetchByAssignees(projectId, selectedIds);
-    if (result.ok) {
-      currentTickets = formatTickets(result.issues);
-      setStatus(teamStatusEl, `Loaded ${result.issues.length} ticket(s)`, 'ok');
-    } else {
-      currentTickets = '';
-      setStatus(teamStatusEl, 'Error: ' + result.error, 'error');
+    try {
+      const result = await window.redmine.issues.fetchByAssignees(projectId, selectedIds);
+      if (result.ok) {
+        currentTickets = formatTickets(result.issues);
+        setStatus(teamStatusEl, `Loaded ${result.issues.length} ticket(s)`, 'ok');
+      } else {
+        currentTickets = '';
+        setStatus(teamStatusEl, 'Error: ' + result.error, 'error');
+      }
+    } catch (err) {
+      setStatus(teamStatusEl, 'Error: ' + err.message, 'error');
     }
   });
 
@@ -280,33 +292,38 @@ export async function renderAiPanel(container) {
 
     setStatus(codeStatusEl, 'Loading…');
 
-    const [codeResult, issueResult] = await Promise.all([
-      window.redmine.code.read(dir),
-      window.redmine.issues.get(issueId),
-    ]);
+    try {
+      const [codeResult, issueResult] = await Promise.all([
+        window.redmine.code.read(dir),
+        window.redmine.issues.get(issueId),
+      ]);
 
-    const errors = [];
-    if (codeResult.ok) {
-      currentCodeText = formatCodeFiles(codeResult.files);
-      if (codeResult.truncated) errors.push('Code truncated to 200 KB.');
-    } else {
-      currentCodeText = '';
-      errors.push('Code: ' + codeResult.error);
-    }
+      const errors = [];
+      if (codeResult.ok) {
+        currentCodeText = formatCodeFiles(codeResult.files);
+        if (codeResult.truncated) errors.push('Code truncated to 200 KB.');
+      } else {
+        currentCodeText = '';
+        errors.push('Code: ' + codeResult.error);
+      }
 
-    if (issueResult.ok) {
-      const i = issueResult.issue;
-      currentIssueText = `#${i.id} — ${i.subject}\n${i.description || '(no description)'}`;
-    } else {
+      if (issueResult.ok) {
+        const i = issueResult.issue;
+        currentIssueText = `#${i.id} — ${i.subject}\n${i.description || '(no description)'}`;
+      } else {
+        currentIssueText = '';
+        errors.push('Issue: ' + issueResult.error);
+      }
+
+      if (errors.length) {
+        setStatus(codeStatusEl, errors.join(' | '), currentCodeText && currentIssueText ? '' : 'error');
+      } else {
+        setStatus(codeStatusEl, `Loaded ${codeResult.files.length} file(s) + issue #${issueId}`, 'ok');
+      }
+    } catch (err) {
+      currentCodeText  = '';
       currentIssueText = '';
-      errors.push('Issue: ' + issueResult.error);
-    }
-
-    if (errors.length) {
-      setStatus(codeStatusEl, errors.join(' | '), currentCodeText && currentIssueText ? '' : 'error');
-    } else {
-      const fileCount = codeResult.files.length;
-      setStatus(codeStatusEl, `Loaded ${fileCount} file(s) + issue #${issueId}`, 'ok');
+      setStatus(codeStatusEl, 'Error: ' + err.message, 'error');
     }
   });
 
