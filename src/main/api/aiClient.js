@@ -33,14 +33,17 @@ function findBinary(backend) {
  *   bin          - executable path
  *   args         - argv array
  *   stdin        - string to write to stdin (undefined = leave stdin as pipe)
- *   stdinMode    - 'ignore' to set stdin to /dev/null (skip pipe entirely)
+ *   stdinMode    - 'ignore'  → /dev/null (closed fd)
+ *                  'inherit' → inherit parent's stdin fd (lets child see parent TTY)
  *   label        - human label for error messages
  *   filterStderr - if true, only call onError for stderr lines matching /error/i
  *                  if false, surface all non-empty stderr immediately
  *   onToken / onDone / onError - callbacks
  */
 function spawnStreaming({ bin, args, stdin, stdinMode, label, filterStderr, onToken, onDone, onError }) {
-  const stdioOpt = stdinMode === 'ignore' ? ['ignore', 'pipe', 'pipe'] : 'pipe';
+  const stdioOpt = stdinMode === 'ignore'  ? ['ignore',  'pipe', 'pipe']
+                 : stdinMode === 'inherit' ? ['inherit', 'pipe', 'pipe']
+                 : 'pipe';
   let proc;
   try {
     proc = spawn(bin, args, { env: ENV, stdio: stdioOpt });
@@ -49,7 +52,7 @@ function spawnStreaming({ bin, args, stdin, stdinMode, label, filterStderr, onTo
     return null;
   }
 
-  if (stdin !== undefined && stdinMode !== 'ignore') {
+  if (stdin !== undefined && stdinMode !== 'ignore' && stdinMode !== 'inherit') {
     try {
       proc.stdin.write(stdin);
       proc.stdin.end();
@@ -134,11 +137,12 @@ function generate(prompt, backend, model, onToken, onDone, onError) {
   }
 
   if (backend === 'codex') {
-    // Codex CLI requires stdin to be a TTY — set stdinMode:'ignore' (/dev/null)
-    // and pass the prompt as a positional arg with --full-auto for non-interactive mode.
+    // Codex CLI checks process.stdin.isTTY and refuses non-TTY stdin.
+    // 'inherit' passes the parent terminal's stdin fd so Codex sees a real TTY.
+    // The prompt is passed as a positional arg; --full-auto disables interactive prompts.
     return spawnStreaming({
       bin, args: ['--full-auto', prompt],
-      stdinMode: 'ignore',
+      stdinMode: 'inherit',
       label: 'Codex CLI',
       filterStderr: false,
       onToken, onDone, onError,
