@@ -110,6 +110,20 @@ async function fetchTimeActivities() {
   return res.data.time_entry_activities;
 }
 
+async function fetchIssuesByAssignees(projectId, assigneeIds) {
+  const client = getClient();
+  const results = await Promise.all(
+    assigneeIds.map(id =>
+      client.get('/issues.json', {
+        params: { project_id: projectId, assigned_to_id: id, status_id: 'open', limit: 50 },
+      }).then(r => r.data.issues),
+    ),
+  );
+  const all  = results.flat();
+  const seen = new Set();
+  return all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
+}
+
 async function fetchChildren(parentId) {
   const client = getClient();
   const res = await client.get('/issues.json', {
@@ -133,4 +147,5 @@ module.exports = {
   updateIssue,
   fetchChildren,
   fetchTimeActivities,
+  fetchIssuesByAssignees,
 };

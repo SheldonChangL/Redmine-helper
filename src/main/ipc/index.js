@@ -5,6 +5,9 @@ const redmine = require('../api/redmineClient');
 const issuesIpc = require('./issues.ipc');
 const timeIpc = require('./time.ipc');
 const uploadIpc = require('./upload.ipc');
+const aiIpc = require('./ai.ipc');
+const gitIpc = require('./git.ipc');
+const codeIpc = require('./code.ipc');
 const pollerManager = require('../polling/pollerManager');
 const notifications = require('./notifications');
 
@@ -59,6 +62,15 @@ function registerAll(store, getMainWindow) {
 
   // Upload
   uploadIpc.register();
+
+  // AI
+  aiIpc.register(getMainWindow);
+
+  // Git
+  gitIpc.register();
+
+  // Code read
+  codeIpc.register();
 
   // Start poller if credentials are already configured
   if (credentials.load()) startPoller();

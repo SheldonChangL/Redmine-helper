@@ -80,6 +80,24 @@ function register(store) {
       return { ok: false, error: err.message };
     }
   });
+
+  ipcMain.handle(IPC.PROJECTS_LIST, async () => {
+    try {
+      const projects = await redmine.fetchProjects();
+      return { ok: true, projects };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle(IPC.ISSUES_FETCH_BY_ASSIGNEES, async (_e, projectId, assigneeIds) => {
+    try {
+      const issues = await redmine.fetchIssuesByAssignees(projectId, assigneeIds);
+      return { ok: true, issues };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
 }
 
 module.exports = { register };

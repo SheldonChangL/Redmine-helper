@@ -7,6 +7,7 @@ const IPC = {
 
   // Projects
   PROJECT_MEMBERS: 'project:members',
+  PROJECTS_LIST: 'projects:list',
 
   // Issues
   ISSUES_FETCH: 'issues:fetch',
@@ -15,6 +16,11 @@ const IPC = {
   ISSUES_UPDATE: 'issues:update',
   ISSUES_FETCH_CHILDREN: 'issues:fetchChildren',
   ISSUES_STATUSES: 'issues:statuses',
+  ISSUES_FETCH_BY_ASSIGNEES: 'issues:fetchByAssignees',
+
+  // Code
+  CODE_READ: 'code:read',
+  CODE_WRITE_PATCH: 'code:writePatch',
 
   // Time
   TIME_LOG: 'time:log',
