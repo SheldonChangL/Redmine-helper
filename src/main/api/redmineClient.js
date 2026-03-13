@@ -98,6 +98,12 @@ async function updateIssue(id, fields) {
   await client.put(`/issues/${id}.json`, { issue: fields });
 }
 
+async function fetchStatuses() {
+  const client = getClient();
+  const res = await client.get('/issue_statuses.json');
+  return res.data.issue_statuses;
+}
+
 async function fetchTimeActivities() {
   const client = getClient();
   const res = await client.get('/enumerations/time_entry_activities.json');
@@ -121,6 +127,7 @@ module.exports = {
   fetchProjects,
   fetchTrackers,
   fetchPriorities,
+  fetchStatuses,
   fetchProjectMembers,
   createIssue,
   updateIssue,

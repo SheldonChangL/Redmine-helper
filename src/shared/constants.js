@@ -14,6 +14,7 @@ const IPC = {
   ISSUES_CREATE: 'issues:create',
   ISSUES_UPDATE: 'issues:update',
   ISSUES_FETCH_CHILDREN: 'issues:fetchChildren',
+  ISSUES_STATUSES: 'issues:statuses',
 
   // Time
   TIME_LOG: 'time:log',

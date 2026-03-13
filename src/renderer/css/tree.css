@@ -1,0 +1,262 @@
+/* ── Tree view — parent / sub-task hierarchy ─────────────────────────────── */
+
+.tree-section {
+  margin: 12px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.tree-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.tree-label-toggle {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tree-label-toggle:hover {
+  color: var(--accent);
+}
+
+.tree-toggle-icon {
+  font-size: 10px;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.12s;
+}
+
+.tree-node:hover {
+  background: var(--hover);
+}
+
+.tree-id {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tree-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.tree-parent .tree-id::before {
+  content: '↑ ';
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tree-children.tree-collapsed {
+  display: none;
+}
+
+/* ── Inline edit fields in detail panel ──────────────────────────────────── */
+
+.detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-field select,
+.detail-field input[type="range"] {
+  width: 100%;
+}
+
+/* ── Submit area ─────────────────────────────────────────────────────────── */
+
+.submit-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.submit-area .detail-save-status {
+  margin: 0;
+}
+
+.status-note-section {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-note-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.detail-save-status {
+  font-size: 12px;
+  min-height: 16px;
+  margin: 4px 0 8px;
+}
+
+/* ── Required-fields prompt ──────────────────────────────────────────────── */
+
+.required-fields-prompt {
+  background: var(--bg-secondary, rgba(255,255,255,0.04));
+  border: 1px solid var(--warning, orange);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.required-fields-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warning, orange);
+}
+
+.required-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.required-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.required-field-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin: 0;
+}
+
+.required-fields-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Comments ─────────────────────────────────────────────────────────────── */
+
+.comments-section {
+  margin: 12px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comments-header {
+  margin-bottom: 4px;
+}
+
+.comment {
+  background: var(--bg-secondary, rgba(255,255,255,0.04));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.comment-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.comment-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.comment-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.comment-body p:first-child { margin-top: 0; }
+.comment-body p:last-child  { margin-bottom: 0; }
+
+/* ── Add-comment section ──────────────────────────────────────────────────── */
+
+.add-comment-section {
+  margin: 12px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add-comment-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}

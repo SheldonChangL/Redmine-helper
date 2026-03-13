@@ -49,7 +49,8 @@ function register(store) {
       await redmine.updateIssue(id, fields);
       return { ok: true };
     } catch (err) {
-      return { ok: false, error: err.message };
+      const errors = err.response?.data?.errors || [];
+      return { ok: false, error: errors.join(', ') || err.message, errors };
     }
   });
 
@@ -66,6 +67,15 @@ function register(store) {
     try {
       const issues = await redmine.fetchChildren(parentId);
       return { ok: true, issues };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle(IPC.ISSUES_STATUSES, async () => {
+    try {
+      const statuses = await redmine.fetchStatuses();
+      return { ok: true, statuses };
     } catch (err) {
       return { ok: false, error: err.message };
     }
