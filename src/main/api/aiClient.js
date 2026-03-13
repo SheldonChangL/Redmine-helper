@@ -32,22 +32,24 @@ function findBinary(backend) {
  * @param {object} opts
  *   bin          - executable path
  *   args         - argv array
- *   stdin        - string to write to stdin (undefined = leave stdin open)
+ *   stdin        - string to write to stdin (undefined = leave stdin as pipe)
+ *   stdinMode    - 'ignore' to set stdin to /dev/null (skip pipe entirely)
  *   label        - human label for error messages
  *   filterStderr - if true, only call onError for stderr lines matching /error/i
  *                  if false, surface all non-empty stderr immediately
  *   onToken / onDone / onError - callbacks
  */
-function spawnStreaming({ bin, args, stdin, label, filterStderr, onToken, onDone, onError }) {
+function spawnStreaming({ bin, args, stdin, stdinMode, label, filterStderr, onToken, onDone, onError }) {
+  const stdioOpt = stdinMode === 'ignore' ? ['ignore', 'pipe', 'pipe'] : 'pipe';
   let proc;
   try {
-    proc = spawn(bin, args, { env: ENV });
+    proc = spawn(bin, args, { env: ENV, stdio: stdioOpt });
   } catch (err) {
     onError(`Failed to start ${label}: ${err.message}`);
     return null;
   }
 
-  if (stdin !== undefined) {
+  if (stdin !== undefined && stdinMode !== 'ignore') {
     try {
       proc.stdin.write(stdin);
       proc.stdin.end();
@@ -119,11 +121,11 @@ function generate(prompt, backend, model, onToken, onDone, onError) {
   }
 
   if (backend === 'claude') {
-    // `claude -p` reads the prompt from stdin in print/non-interactive mode.
-    // Passing large prompts as a CLI arg would hit ARG_MAX limits.
+    // `claude -p "<prompt>"` — print/non-interactive mode.
+    // Passing via stdin causes claude to hang waiting for interactive input;
+    // passing as a CLI arg works for prompts up to ~200 KB (within ARG_MAX).
     return spawnStreaming({
-      bin, args: ['-p'],
-      stdin: prompt,
+      bin, args: ['-p', prompt],
       label: 'Claude CLI',
       filterStderr: false, // surface all stderr (auth errors, warnings, etc.)
       onToken, onDone, onError,
@@ -131,10 +133,12 @@ function generate(prompt, backend, model, onToken, onDone, onError) {
   }
 
   if (backend === 'codex') {
-    // Codex CLI reads prompt from stdin
+    // Codex CLI checks process.stdin.isTTY and errors if stdin is a pipe.
+    // --full-auto disables interactive approval prompts; pass prompt as arg
+    // and set stdin to 'ignore' (mapped to /dev/null) to avoid the TTY check.
     return spawnStreaming({
-      bin, args: [],
-      stdin: prompt,
+      bin, args: ['--full-auto', '--quiet', prompt],
+      stdinMode: 'ignore',
       label: 'Codex CLI',
       filterStderr: false,
       onToken, onDone, onError,
