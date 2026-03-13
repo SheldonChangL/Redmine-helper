@@ -6,21 +6,44 @@ function escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+// section: which input section to show for this mode
 const MODES = {
-  ac:       { label: 'Generate Acceptance Criteria', needsDiff: false },
-  subtasks: { label: 'Generate Sub-tasks',           needsDiff: false },
-  diff:     { label: 'Summarize Git Diff',           needsDiff: true  },
+  ac:       { label: 'Generate Acceptance Criteria', section: 'context' },
+  subtasks: { label: 'Generate Sub-tasks',           section: 'context' },
+  diff:     { label: 'Summarize Git Diff',           section: 'diff'    },
+  team:     { label: 'Analyze Team Tickets',         section: 'team'    },
+  code:     { label: 'Analyze Code + Issue',         section: 'code'    },
 };
 
-function buildPrompt(mode, context, diff) {
+function buildPrompt(mode, { context, diff, tickets, issueText, codeText }) {
   if (mode === 'ac') {
     return `You are a senior software engineer. Given the following issue description, write clear Acceptance Criteria in checklist format (use "- [ ] " prefix for each item).\n\nIssue:\n${context}`;
   }
   if (mode === 'subtasks') {
     return `You are a senior software engineer. Given the following issue description, break it into specific, implementable sub-tasks as a checklist (use "- [ ] " prefix for each item).\n\nIssue:\n${context}`;
   }
-  // diff
-  return `Summarize the following git diff as a concise Redmine journal note. Describe what changed and why (inferred from the diff). Keep it under 200 words.\n\nDiff:\n${diff}`;
+  if (mode === 'diff') {
+    return `Summarize the following git diff as a concise Redmine journal note. Describe what changed and why (inferred from the diff). Keep it under 200 words.\n\nDiff:\n${diff}`;
+  }
+  if (mode === 'team') {
+    return `You are an experienced engineering manager. Below are open Redmine tickets assigned to one or more team members. Analyze patterns, recurring blockers, risks, and workload. Provide clear, prioritized recommendations to improve the team's delivery.\n\nTickets:\n${tickets}`;
+  }
+  // code
+  return `You are a senior software engineer. Given the issue below and the relevant source files, analyze the root cause and suggest specific code changes to resolve the issue. Reference file names where possible.\n\nIssue:\n${issueText}\n\nSource files:\n${codeText}`;
+}
+
+function formatTickets(issues) {
+  return issues.map(i =>
+    `#${i.id} [${i.status?.name || '?'}] ${i.subject}\n` +
+    `  Assigned: ${i.assigned_to?.name || 'Unassigned'} | Priority: ${i.priority?.name || 'Normal'} | Updated: ${(i.updated_on || '').slice(0, 10)}\n` +
+    (i.description ? `  ${i.description.replace(/\n/g, ' ').slice(0, 300)}` : '  (no description)')
+  ).join('\n\n');
+}
+
+function formatCodeFiles(files) {
+  return files.map(f =>
+    `=== ${f.path} ===\n${f.content}`
+  ).join('\n\n');
 }
 
 export async function renderAiPanel(container) {
@@ -49,11 +72,13 @@ export async function renderAiPanel(container) {
         </div>
       </div>
 
+      <!-- Context (ac / subtasks) -->
       <div id="ai-context-section" class="ai-section">
         <label class="ai-label">Issue description / context</label>
         <textarea id="ai-context" rows="6" placeholder="Paste or type the issue description here…"></textarea>
       </div>
 
+      <!-- Git diff -->
       <div id="ai-diff-section" class="ai-section" style="display:none">
         <label class="ai-label">Git repository path</label>
         <div class="ai-diff-row">
@@ -62,6 +87,30 @@ export async function renderAiPanel(container) {
         </div>
         <p id="ai-diff-status" class="ai-status" style="display:none"></p>
         <textarea id="ai-diff-preview" rows="5" placeholder="Git diff will appear here…" readonly style="display:none"></textarea>
+      </div>
+
+      <!-- Team analysis -->
+      <div id="ai-team-section" class="ai-section" style="display:none">
+        <div class="ai-config-row">
+          <label class="ai-label">Project</label>
+          <select id="ai-team-project"><option value="">— loading projects… —</option></select>
+        </div>
+        <div class="ai-team-members-row">
+          <label class="ai-label">Members <span class="ai-hint">(Ctrl/Cmd+click to select multiple)</span></label>
+          <select id="ai-team-members" multiple size="4"></select>
+        </div>
+        <button class="btn btn-secondary" id="btn-load-tickets" style="margin-top:6px">Load Tickets</button>
+        <p id="ai-team-status" class="ai-status" style="display:none"></p>
+      </div>
+
+      <!-- Code + issue analysis -->
+      <div id="ai-code-section" class="ai-section" style="display:none">
+        <label class="ai-label">Code directory</label>
+        <input id="ai-code-dir" type="text" placeholder="/path/to/project/src" />
+        <label class="ai-label" style="margin-top:8px">Issue ID</label>
+        <input id="ai-issue-id" type="number" placeholder="e.g. 42" min="1" />
+        <button class="btn btn-secondary" id="btn-load-code" style="margin-top:8px">Load Code &amp; Issue</button>
+        <p id="ai-code-status" class="ai-status" style="display:none"></p>
       </div>
 
       <div class="ai-actions">
@@ -80,34 +129,61 @@ export async function renderAiPanel(container) {
     </div>
   `;
 
+  // ── Element refs ──────────────────────────────────────────────────────────
   const modeEl         = container.querySelector('#ai-mode');
   const backendEl      = container.querySelector('#ai-backend');
   const modelRowEl     = container.querySelector('#ai-model-row');
   const modelEl        = container.querySelector('#ai-model');
-  const contextSection = container.querySelector('#ai-context-section');
-  const contextEl      = container.querySelector('#ai-context');
-  const diffSection    = container.querySelector('#ai-diff-section');
-  const repoPathEl     = container.querySelector('#ai-repo-path');
-  const diffStatusEl   = container.querySelector('#ai-diff-status');
-  const diffPreviewEl  = container.querySelector('#ai-diff-preview');
   const outputSection  = container.querySelector('#ai-output-section');
   const outputEl       = container.querySelector('#ai-output');
   const errorEl        = container.querySelector('#ai-error');
   const btnGenerate    = container.querySelector('#btn-ai-generate');
   const btnCancel      = container.querySelector('#btn-ai-cancel');
   const btnClear       = container.querySelector('#btn-ai-clear');
-  const btnLoadDiff    = container.querySelector('#btn-load-diff');
   const btnCopy        = container.querySelector('#btn-ai-copy');
 
-  let currentDiff = '';
+  // Sections
+  const sectionEls = {
+    context: container.querySelector('#ai-context-section'),
+    diff:    container.querySelector('#ai-diff-section'),
+    team:    container.querySelector('#ai-team-section'),
+    code:    container.querySelector('#ai-code-section'),
+  };
 
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = '';
-  }
+  // Context
+  const contextEl = container.querySelector('#ai-context');
 
-  function hideError() {
-    errorEl.style.display = 'none';
+  // Diff
+  const repoPathEl   = container.querySelector('#ai-repo-path');
+  const diffStatusEl = container.querySelector('#ai-diff-status');
+  const diffPreviewEl= container.querySelector('#ai-diff-preview');
+
+  // Team
+  const teamProjectEl = container.querySelector('#ai-team-project');
+  const teamMembersEl = container.querySelector('#ai-team-members');
+  const teamStatusEl  = container.querySelector('#ai-team-status');
+  const btnLoadTickets= container.querySelector('#btn-load-tickets');
+
+  // Code
+  const codeDirEl    = container.querySelector('#ai-code-dir');
+  const issueIdEl    = container.querySelector('#ai-issue-id');
+  const codeStatusEl = container.querySelector('#ai-code-status');
+  const btnLoadCode  = container.querySelector('#btn-load-code');
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let currentDiff    = '';
+  let currentTickets = '';
+  let currentIssueText = '';
+  let currentCodeText  = '';
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function showError(msg)  { errorEl.textContent = msg; errorEl.style.display = ''; }
+  function hideError()     { errorEl.style.display = 'none'; }
+
+  function setStatus(el, msg, type = '') {
+    el.textContent = msg;
+    el.className   = 'ai-status' + (type ? ` ai-status-${type}` : '');
+    el.style.display = msg ? '' : 'none';
   }
 
   function setGenerating(on) {
@@ -115,57 +191,150 @@ export async function renderAiPanel(container) {
     btnCancel.disabled   = !on;
   }
 
-  // Backend switch — hide model input for Claude/Codex (no model needed)
+  function showSection(key) {
+    Object.entries(sectionEls).forEach(([k, el]) => {
+      el.style.display = k === key ? '' : 'none';
+    });
+  }
+
+  // ── Backend / mode switches ───────────────────────────────────────────────
   backendEl.addEventListener('change', () => {
     modelRowEl.style.display = backendEl.value === 'ollama' ? '' : 'none';
   });
 
-  // Mode switch
   modeEl.addEventListener('change', () => {
-    const needsDiff = MODES[modeEl.value].needsDiff;
-    contextSection.style.display = needsDiff ? 'none' : '';
-    diffSection.style.display    = needsDiff ? '' : 'none';
+    showSection(MODES[modeEl.value].section);
   });
 
-  // Load git diff
-  btnLoadDiff.addEventListener('click', async () => {
+  // ── Load git diff ─────────────────────────────────────────────────────────
+  container.querySelector('#btn-load-diff').addEventListener('click', async () => {
     const repoPath = repoPathEl.value.trim();
     if (!repoPath) return;
 
-    diffStatusEl.textContent = 'Loading…';
-    diffStatusEl.className   = 'ai-status';
-    diffStatusEl.style.display = '';
-
+    setStatus(diffStatusEl, 'Loading…');
     const result = await window.redmine.git.diff(repoPath);
     if (result.ok) {
       currentDiff = result.diff;
       diffPreviewEl.value = result.diff;
       diffPreviewEl.style.display = '';
-      const lines = result.diff.split('\n').length;
-      diffStatusEl.textContent = `Loaded — ${lines} lines`;
-      diffStatusEl.className   = 'ai-status ai-status-ok';
+      setStatus(diffStatusEl, `Loaded — ${result.diff.split('\n').length} lines`, 'ok');
     } else {
       currentDiff = '';
       diffPreviewEl.style.display = 'none';
-      diffStatusEl.textContent = 'Error: ' + result.error;
-      diffStatusEl.className   = 'ai-status ai-status-error';
+      setStatus(diffStatusEl, 'Error: ' + result.error, 'error');
     }
   });
 
-  // Generate
+  // ── Load projects for team mode ───────────────────────────────────────────
+  async function loadProjects() {
+    const result = await window.redmine.projects.list();
+    if (!result.ok) {
+      teamProjectEl.innerHTML = `<option value="">Failed: ${escHtml(result.error)}</option>`;
+      return;
+    }
+    teamProjectEl.innerHTML =
+      `<option value="">— select a project —</option>` +
+      result.projects.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
+  }
+
+  teamProjectEl.addEventListener('change', async () => {
+    const projectId = teamProjectEl.value;
+    teamMembersEl.innerHTML = '<option disabled>Loading…</option>';
+    if (!projectId) return;
+
+    const result = await window.redmine.projects.members(projectId);
+    if (result.ok) {
+      teamMembersEl.innerHTML = result.members.map(m =>
+        `<option value="${m.id}">${escHtml(m.name)}</option>`
+      ).join('');
+    } else {
+      teamMembersEl.innerHTML = `<option disabled>Failed: ${escHtml(result.error)}</option>`;
+    }
+  });
+
+  btnLoadTickets.addEventListener('click', async () => {
+    const projectId = teamProjectEl.value;
+    if (!projectId) { setStatus(teamStatusEl, 'Select a project first.', 'error'); return; }
+
+    const selectedIds = Array.from(teamMembersEl.selectedOptions).map(o => Number(o.value));
+    if (selectedIds.length === 0) { setStatus(teamStatusEl, 'Select at least one member.', 'error'); return; }
+
+    setStatus(teamStatusEl, 'Loading tickets…');
+    const result = await window.redmine.issues.fetchByAssignees(projectId, selectedIds);
+    if (result.ok) {
+      currentTickets = formatTickets(result.issues);
+      setStatus(teamStatusEl, `Loaded ${result.issues.length} ticket(s)`, 'ok');
+    } else {
+      currentTickets = '';
+      setStatus(teamStatusEl, 'Error: ' + result.error, 'error');
+    }
+  });
+
+  // ── Load code + issue ─────────────────────────────────────────────────────
+  btnLoadCode.addEventListener('click', async () => {
+    const dir     = codeDirEl.value.trim();
+    const issueId = Number(issueIdEl.value);
+
+    if (!dir)     { setStatus(codeStatusEl, 'Enter a directory path.', 'error'); return; }
+    if (!issueId) { setStatus(codeStatusEl, 'Enter a valid issue ID.', 'error'); return; }
+
+    setStatus(codeStatusEl, 'Loading…');
+
+    const [codeResult, issueResult] = await Promise.all([
+      window.redmine.code.read(dir),
+      window.redmine.issues.get(issueId),
+    ]);
+
+    const errors = [];
+    if (codeResult.ok) {
+      currentCodeText = formatCodeFiles(codeResult.files);
+      if (codeResult.truncated) errors.push('Code truncated to 200 KB.');
+    } else {
+      currentCodeText = '';
+      errors.push('Code: ' + codeResult.error);
+    }
+
+    if (issueResult.ok) {
+      const i = issueResult.issue;
+      currentIssueText = `#${i.id} — ${i.subject}\n${i.description || '(no description)'}`;
+    } else {
+      currentIssueText = '';
+      errors.push('Issue: ' + issueResult.error);
+    }
+
+    if (errors.length) {
+      setStatus(codeStatusEl, errors.join(' | '), currentCodeText && currentIssueText ? '' : 'error');
+    } else {
+      const fileCount = codeResult.files.length;
+      setStatus(codeStatusEl, `Loaded ${fileCount} file(s) + issue #${issueId}`, 'ok');
+    }
+  });
+
+  // ── Generate ──────────────────────────────────────────────────────────────
   btnGenerate.addEventListener('click', () => {
     hideError();
     const mode    = modeEl.value;
     const backend = backendEl.value;
     const model   = modelEl.value.trim() || 'llama3.2';
 
-    if (MODES[mode].needsDiff) {
-      if (!currentDiff) { showError('Load a git diff first.'); return; }
-    } else {
+    // Validate inputs per mode
+    if (mode === 'ac' || mode === 'subtasks') {
       if (!contextEl.value.trim()) { showError('Enter an issue description first.'); return; }
+    } else if (mode === 'diff') {
+      if (!currentDiff) { showError('Load a git diff first.'); return; }
+    } else if (mode === 'team') {
+      if (!currentTickets) { showError('Load tickets first.'); return; }
+    } else if (mode === 'code') {
+      if (!currentCodeText || !currentIssueText) { showError('Load code and issue first.'); return; }
     }
 
-    const prompt = buildPrompt(mode, contextEl.value.trim(), currentDiff);
+    const prompt = buildPrompt(mode, {
+      context:    contextEl.value.trim(),
+      diff:       currentDiff,
+      tickets:    currentTickets,
+      issueText:  currentIssueText,
+      codeText:   currentCodeText,
+    });
 
     outputEl.textContent = '';
     outputSection.style.display = '';
@@ -174,13 +343,11 @@ export async function renderAiPanel(container) {
     window.redmine.ai.generate(prompt, backend, model);
   });
 
-  // Cancel
   btnCancel.addEventListener('click', () => {
     window.redmine.ai.cancel();
     setGenerating(false);
   });
 
-  // Clear
   btnClear.addEventListener('click', () => {
     outputEl.textContent = '';
     outputSection.style.display = 'none';
@@ -188,14 +355,13 @@ export async function renderAiPanel(container) {
     setGenerating(false);
   });
 
-  // Copy
   btnCopy.addEventListener('click', () => {
     navigator.clipboard.writeText(outputEl.textContent);
     btnCopy.textContent = 'Copied!';
     setTimeout(() => { btnCopy.textContent = 'Copy to Clipboard'; }, 2000);
   });
 
-  // AI streaming — check element is still in DOM before updating
+  // ── AI streaming ──────────────────────────────────────────────────────────
   window.redmine.on('ai:token', (token) => {
     if (!document.contains(outputEl)) return;
     outputEl.textContent += token;
@@ -212,4 +378,7 @@ export async function renderAiPanel(container) {
     setGenerating(false);
     showError(err);
   });
+
+  // Load projects when team mode is first shown
+  loadProjects();
 }

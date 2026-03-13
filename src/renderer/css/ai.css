@@ -101,6 +101,42 @@
   gap: 4px;
 }
 
+.ai-hint {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.ai-team-members-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-team-members-row select {
+  width: 100%;
+  background: var(--input-bg, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+.ai-section input[type="text"],
+.ai-section input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
 .ai-output {
   background: var(--bg-secondary, rgba(255,255,255,0.04));
   border: 1px solid var(--border);

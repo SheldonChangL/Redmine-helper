@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('redmine', {
   },
   projects: {
     members: (id) => ipcRenderer.invoke(IPC.PROJECT_MEMBERS, id),
+    list: ()     => ipcRenderer.invoke(IPC.PROJECTS_LIST),
   },
   issues: {
     fetch: () => ipcRenderer.invoke(IPC.ISSUES_FETCH),
@@ -18,6 +19,10 @@ contextBridge.exposeInMainWorld('redmine', {
     update: (id, fields) => ipcRenderer.invoke(IPC.ISSUES_UPDATE, id, fields),
     fetchChildren: (id) => ipcRenderer.invoke(IPC.ISSUES_FETCH_CHILDREN, id),
     statuses: () => ipcRenderer.invoke(IPC.ISSUES_STATUSES),
+    fetchByAssignees: (projectId, assigneeIds) => ipcRenderer.invoke(IPC.ISSUES_FETCH_BY_ASSIGNEES, projectId, assigneeIds),
+  },
+  code: {
+    read: (dirPath) => ipcRenderer.invoke(IPC.CODE_READ, dirPath),
   },
   time: {
     log: (entry) => ipcRenderer.invoke(IPC.TIME_LOG, entry),
