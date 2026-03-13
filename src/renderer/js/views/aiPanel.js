@@ -36,6 +36,14 @@ export async function renderAiPanel(container) {
           </select>
         </div>
         <div class="ai-config-row">
+          <label class="ai-label">Backend</label>
+          <select id="ai-backend">
+            <option value="ollama">Ollama (local)</option>
+            <option value="claude">Claude CLI</option>
+            <option value="codex">Codex CLI</option>
+          </select>
+        </div>
+        <div class="ai-config-row" id="ai-model-row">
           <label class="ai-label">Model</label>
           <input id="ai-model" type="text" value="llama3.2" placeholder="e.g. llama3.2, codellama" />
         </div>
@@ -73,6 +81,8 @@ export async function renderAiPanel(container) {
   `;
 
   const modeEl         = container.querySelector('#ai-mode');
+  const backendEl      = container.querySelector('#ai-backend');
+  const modelRowEl     = container.querySelector('#ai-model-row');
   const modelEl        = container.querySelector('#ai-model');
   const contextSection = container.querySelector('#ai-context-section');
   const contextEl      = container.querySelector('#ai-context');
@@ -104,6 +114,11 @@ export async function renderAiPanel(container) {
     btnGenerate.disabled = on;
     btnCancel.disabled   = !on;
   }
+
+  // Backend switch — hide model input for Claude/Codex (no model needed)
+  backendEl.addEventListener('change', () => {
+    modelRowEl.style.display = backendEl.value === 'ollama' ? '' : 'none';
+  });
 
   // Mode switch
   modeEl.addEventListener('change', () => {
@@ -140,8 +155,9 @@ export async function renderAiPanel(container) {
   // Generate
   btnGenerate.addEventListener('click', () => {
     hideError();
-    const mode  = modeEl.value;
-    const model = modelEl.value.trim() || 'llama3.2';
+    const mode    = modeEl.value;
+    const backend = backendEl.value;
+    const model   = modelEl.value.trim() || 'llama3.2';
 
     if (MODES[mode].needsDiff) {
       if (!currentDiff) { showError('Load a git diff first.'); return; }
@@ -155,7 +171,7 @@ export async function renderAiPanel(container) {
     outputSection.style.display = '';
     setGenerating(true);
 
-    window.redmine.ai.generate(prompt, model);
+    window.redmine.ai.generate(prompt, backend, model);
   });
 
   // Cancel

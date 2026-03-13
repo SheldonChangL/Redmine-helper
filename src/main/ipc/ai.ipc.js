@@ -7,7 +7,7 @@ const aiClient = require('../api/aiClient');
 let activeProcess = null;
 
 function register(getMainWindow) {
-  ipcMain.on(IPC.AI_GENERATE, (event, prompt, model = 'llama3.2') => {
+  ipcMain.on(IPC.AI_GENERATE, (event, prompt, backend = 'ollama', model = 'llama3.2') => {
     // Kill any in-flight generation before starting a new one
     if (activeProcess) {
       activeProcess.kill();
@@ -20,6 +20,7 @@ function register(getMainWindow) {
 
     activeProcess = aiClient.generate(
       prompt,
+      backend,
       model,
       (token) => {
         if (!sender.isDestroyed()) sender.send(IPC.AI_TOKEN, token);

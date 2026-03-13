@@ -35,7 +35,7 @@ contextBridge.exposeInMainWorld('redmine', {
     set: (key, value) => ipcRenderer.invoke(IPC.SETTINGS_SET, key, value),
   },
   ai: {
-    generate: (prompt, model) => ipcRenderer.send(IPC.AI_GENERATE, prompt, model),
+    generate: (prompt, backend, model) => ipcRenderer.send(IPC.AI_GENERATE, prompt, backend, model),
     cancel: () => ipcRenderer.send(IPC.AI_CANCEL),
   },
   git: {
