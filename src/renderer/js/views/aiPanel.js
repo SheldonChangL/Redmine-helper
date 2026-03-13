@@ -119,6 +119,7 @@ export async function renderAiPanel(container) {
         <button class="btn" id="btn-ai-clear">Clear</button>
       </div>
 
+      <p id="ai-gen-status" class="ai-status" style="display:none"></p>
       <p id="ai-error" class="ai-error" style="display:none"></p>
 
       <div id="ai-output-section" class="ai-output-section" style="display:none">
@@ -136,6 +137,7 @@ export async function renderAiPanel(container) {
   const modelEl        = container.querySelector('#ai-model');
   const outputSection  = container.querySelector('#ai-output-section');
   const outputEl       = container.querySelector('#ai-output');
+  const genStatusEl    = container.querySelector('#ai-gen-status');
   const errorEl        = container.querySelector('#ai-error');
   const btnGenerate    = container.querySelector('#btn-ai-generate');
   const btnCancel      = container.querySelector('#btn-ai-cancel');
@@ -175,6 +177,7 @@ export async function renderAiPanel(container) {
   let currentTickets = '';
   let currentIssueText = '';
   let currentCodeText  = '';
+  let receivedChars    = 0;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function showError(msg)  { errorEl.textContent = msg; errorEl.style.display = ''; }
@@ -355,6 +358,8 @@ export async function renderAiPanel(container) {
 
     outputEl.textContent = '';
     outputSection.style.display = '';
+    receivedChars = 0;
+    setStatus(genStatusEl, 'Starting…', '');
     setGenerating(true);
 
     window.redmine.ai.generate(prompt, backend, model);
@@ -363,6 +368,7 @@ export async function renderAiPanel(container) {
   btnCancel.addEventListener('click', () => {
     window.redmine.ai.cancel();
     setGenerating(false);
+    setStatus(genStatusEl, 'Cancelled.', '');
   });
 
   btnClear.addEventListener('click', () => {
@@ -370,6 +376,7 @@ export async function renderAiPanel(container) {
     outputSection.style.display = 'none';
     hideError();
     setGenerating(false);
+    genStatusEl.style.display = 'none';
   });
 
   btnCopy.addEventListener('click', () => {
@@ -381,18 +388,22 @@ export async function renderAiPanel(container) {
   // ── AI streaming ──────────────────────────────────────────────────────────
   window.redmine.on('ai:token', (token) => {
     if (!document.contains(outputEl)) return;
+    receivedChars += token.length;
     outputEl.textContent += token;
     outputEl.scrollTop = outputEl.scrollHeight;
+    setStatus(genStatusEl, `Receiving… (${receivedChars} chars)`, '');
   });
 
   window.redmine.on('ai:done', () => {
     if (!document.contains(btnGenerate)) return;
     setGenerating(false);
+    setStatus(genStatusEl, `Done — ${receivedChars} chars received.`, 'ok');
   });
 
   window.redmine.on('ai:error', (err) => {
     if (!document.contains(errorEl)) return;
     setGenerating(false);
+    genStatusEl.style.display = 'none';
     showError(err);
   });
 
