@@ -1,6 +1,7 @@
 import { renderSettings } from './views/settings.js';
 import { renderIssueList } from './views/issueList.js';
 import { renderTimeLog } from './views/timeLog.js';
+import { renderAiPanel } from './views/aiPanel.js';
 
 const content = document.getElementById('content');
 
@@ -28,6 +29,8 @@ async function navigate(view) {
     await renderIssueList(content);
   } else if (view === 'time') {
     await renderTimeLog(content);
+  } else if (view === 'ai') {
+    await renderAiPanel(content);
   }
 }
 
