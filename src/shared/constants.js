@@ -20,6 +20,7 @@ const IPC = {
 
   // Code
   CODE_READ: 'code:read',
+  CODE_WRITE_PATCH: 'code:writePatch',
 
   // Time
   TIME_LOG: 'time:log',

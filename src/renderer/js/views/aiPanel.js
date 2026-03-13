@@ -15,7 +15,31 @@ const MODES = {
   code:     { label: 'Analyze Code + Issue',         section: 'code'    },
 };
 
-function buildPrompt(mode, { context, diff, tickets, issueText, codeText }) {
+const BACKEND_LABELS = {
+  ollama: 'Ollama',
+  claude: 'Claude CLI',
+  codex: 'Codex CLI',
+};
+
+function buildCodePatchPrompt({ issueText, codeText }) {
+  return [
+    'You are a senior software engineer.',
+    'Given the issue below and the relevant source files, produce a unified diff patch that fixes the issue.',
+    'Requirements:',
+    '- Output only the patch content.',
+    '- Do not wrap the patch in markdown fences.',
+    '- Use standard unified diff format with --- and +++ headers.',
+    '- Do not include explanations before or after the patch.',
+    '',
+    'Issue:',
+    issueText,
+    '',
+    'Source files:',
+    codeText,
+  ].join('\n');
+}
+
+function buildPrompt(mode, { context, diff, tickets, issueText, codeText, patchMode }) {
   if (mode === 'ac') {
     return `You are a senior software engineer. Given the following issue description, write clear Acceptance Criteria in checklist format (use "- [ ] " prefix for each item).\n\nIssue:\n${context}`;
   }
@@ -27,6 +51,9 @@ function buildPrompt(mode, { context, diff, tickets, issueText, codeText }) {
   }
   if (mode === 'team') {
     return `You are an experienced engineering manager. Below are open Redmine tickets assigned to one or more team members. Analyze patterns, recurring blockers, risks, and workload. Provide clear, prioritized recommendations to improve the team's delivery.\n\nTickets:\n${tickets}`;
+  }
+  if (patchMode) {
+    return buildCodePatchPrompt({ issueText, codeText });
   }
   // code
   return `You are a senior software engineer. Given the issue below and the relevant source files, analyze the root cause and suggest specific code changes to resolve the issue. Reference file names where possible.\n\nIssue:\n${issueText}\n\nSource files:\n${codeText}`;
@@ -109,6 +136,14 @@ export async function renderAiPanel(container) {
         <input id="ai-code-dir" type="text" placeholder="/path/to/project/src" />
         <label class="ai-label" style="margin-top:8px">Issue ID</label>
         <input id="ai-issue-id" type="number" placeholder="e.g. 42" min="1" />
+        <label class="ai-code-patch-toggle">
+          <input id="ai-code-patch-mode" type="checkbox" />
+          <span>Save AI output as a patch file in this directory</span>
+        </label>
+        <div id="ai-code-patch-file-row" class="ai-config-row" style="display:none">
+          <label class="ai-label">Patch file</label>
+          <input id="ai-code-patch-file" type="text" value="ai-generated.patch" placeholder="ai-generated.patch" />
+        </div>
         <button class="btn btn-secondary" id="btn-load-code" style="margin-top:8px">Load Code &amp; Issue</button>
         <p id="ai-code-status" class="ai-status" style="display:none"></p>
       </div>
@@ -169,6 +204,9 @@ export async function renderAiPanel(container) {
   // Code
   const codeDirEl    = container.querySelector('#ai-code-dir');
   const issueIdEl    = container.querySelector('#ai-issue-id');
+  const codePatchModeEl = container.querySelector('#ai-code-patch-mode');
+  const codePatchFileRowEl = container.querySelector('#ai-code-patch-file-row');
+  const codePatchFileEl = container.querySelector('#ai-code-patch-file');
   const codeStatusEl = container.querySelector('#ai-code-status');
   const btnLoadCode  = container.querySelector('#btn-load-code');
 
@@ -178,6 +216,11 @@ export async function renderAiPanel(container) {
   let currentIssueText = '';
   let currentCodeText  = '';
   let receivedChars    = 0;
+  let generationStartedAt = 0;
+  let generationTimer = null;
+  let activeBackend = backendEl.value;
+  let hasReceivedFirstToken = false;
+  let pendingPatchTarget = null;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function showError(msg)  { errorEl.textContent = msg; errorEl.style.display = ''; }
@@ -192,12 +235,105 @@ export async function renderAiPanel(container) {
   function setGenerating(on) {
     btnGenerate.disabled = on;
     btnCancel.disabled   = !on;
+    btnGenerate.textContent = on ? 'Generating…' : 'Generate';
+    modeEl.disabled = on;
+    backendEl.disabled = on;
+    modelEl.disabled = on;
+    codePatchModeEl.disabled = on;
+    codePatchFileEl.disabled = on;
   }
 
   function showSection(key) {
     Object.entries(sectionEls).forEach(([k, el]) => {
       el.style.display = k === key ? '' : 'none';
     });
+  }
+
+  function isPatchMode() {
+    return modeEl.value === 'code' && codePatchModeEl.checked;
+  }
+
+  function sanitizePatchText(text) {
+    const trimmed = String(text || '').trim();
+    if (!trimmed) return '';
+
+    const fenced = trimmed.match(/^```(?:diff|patch)?\s*\n([\s\S]*?)\n```$/i);
+    return fenced ? fenced[1].trim() : trimmed;
+  }
+
+  function looksLikePatch(text) {
+    const normalized = sanitizePatchText(text);
+    return /(^diff --git\s)|(^---\s)|(^\+\+\+\s)|(^@@\s)/m.test(normalized);
+  }
+
+  function formatElapsed(ms) {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes > 0
+      ? `${minutes}m ${String(seconds).padStart(2, '0')}s`
+      : `${seconds}s`;
+  }
+
+  function clearGenerationTimer() {
+    if (generationTimer) {
+      clearInterval(generationTimer);
+      generationTimer = null;
+    }
+  }
+
+  function setOutputWaiting(message) {
+    outputSection.style.display = '';
+    outputEl.classList.add('ai-output-waiting');
+    outputEl.textContent = message;
+  }
+
+  function clearOutputWaiting() {
+    outputEl.classList.remove('ai-output-waiting');
+  }
+
+  function updateGenerationStatus() {
+    if (!generationStartedAt) return;
+
+    const backendLabel = BACKEND_LABELS[activeBackend] || activeBackend;
+    const elapsed = formatElapsed(Date.now() - generationStartedAt);
+
+    if (!hasReceivedFirstToken) {
+      const slowHint = Date.now() - generationStartedAt >= 12000
+        ? ' First response is taking a while, but this is normal for Claude/Codex.'
+        : '';
+      setStatus(genStatusEl, `Waiting for ${backendLabel}… ${elapsed} elapsed.${slowHint}`, 'pending');
+      return;
+    }
+
+    setStatus(genStatusEl, `Receiving from ${backendLabel}… ${receivedChars} chars in ${elapsed}.`, 'pending');
+  }
+
+  function startGeneration(backend) {
+    activeBackend = backend;
+    receivedChars = 0;
+    hasReceivedFirstToken = false;
+    generationStartedAt = Date.now();
+    setOutputWaiting(`Waiting for ${BACKEND_LABELS[backend] || backend} to produce the first response…`);
+    updateGenerationStatus();
+    clearGenerationTimer();
+    generationTimer = setInterval(() => {
+      if (!document.contains(outputEl)) {
+        clearGenerationTimer();
+        return;
+      }
+      updateGenerationStatus();
+    }, 1000);
+  }
+
+  function stopGeneration(finalMessage, type = '') {
+    const hadVisibleResponse = hasReceivedFirstToken || receivedChars > 0;
+    clearGenerationTimer();
+    generationStartedAt = 0;
+    hasReceivedFirstToken = false;
+    clearOutputWaiting();
+    if (!hadVisibleResponse) outputEl.textContent = '';
+    if (finalMessage) setStatus(genStatusEl, finalMessage, type);
   }
 
   // ── Backend / mode switches ───────────────────────────────────────────────
@@ -207,6 +343,10 @@ export async function renderAiPanel(container) {
 
   modeEl.addEventListener('change', () => {
     showSection(MODES[modeEl.value].section);
+  });
+
+  codePatchModeEl.addEventListener('change', () => {
+    codePatchFileRowEl.style.display = codePatchModeEl.checked ? '' : 'none';
   });
 
   // ── Load git diff ─────────────────────────────────────────────────────────
@@ -354,24 +494,33 @@ export async function renderAiPanel(container) {
       tickets:    currentTickets,
       issueText:  currentIssueText,
       codeText:   currentCodeText,
+      patchMode:  isPatchMode(),
     });
 
-    outputEl.textContent = '';
-    outputSection.style.display = '';
-    receivedChars = 0;
-    setStatus(genStatusEl, 'Starting…', '');
+    pendingPatchTarget = isPatchMode()
+      ? {
+          dir: codeDirEl.value.trim(),
+          filename: codePatchFileEl.value.trim() || 'ai-generated.patch',
+        }
+      : null;
+
     setGenerating(true);
+    startGeneration(backend);
 
     window.redmine.ai.generate(prompt, backend, model);
   });
 
   btnCancel.addEventListener('click', () => {
     window.redmine.ai.cancel();
+    pendingPatchTarget = null;
     setGenerating(false);
-    setStatus(genStatusEl, 'Cancelled.', '');
+    const elapsed = generationStartedAt ? formatElapsed(Date.now() - generationStartedAt) : '0s';
+    stopGeneration(`Cancelled after ${elapsed}.`, '');
   });
 
   btnClear.addEventListener('click', () => {
+    pendingPatchTarget = null;
+    stopGeneration('');
     outputEl.textContent = '';
     outputSection.style.display = 'none';
     hideError();
@@ -388,21 +537,58 @@ export async function renderAiPanel(container) {
   // ── AI streaming ──────────────────────────────────────────────────────────
   window.redmine.on('ai:token', (token) => {
     if (!document.contains(outputEl)) return;
+    if (!hasReceivedFirstToken) {
+      hasReceivedFirstToken = true;
+      outputEl.textContent = '';
+      clearOutputWaiting();
+    }
     receivedChars += token.length;
     outputEl.textContent += token;
     outputEl.scrollTop = outputEl.scrollHeight;
-    setStatus(genStatusEl, `Receiving… (${receivedChars} chars)`, '');
+    updateGenerationStatus();
   });
 
-  window.redmine.on('ai:done', () => {
+  window.redmine.on('ai:done', async () => {
     if (!document.contains(btnGenerate)) return;
     setGenerating(false);
-    setStatus(genStatusEl, `Done — ${receivedChars} chars received.`, 'ok');
+    if (pendingPatchTarget) {
+      const patchText = sanitizePatchText(outputEl.textContent);
+      const elapsed = generationStartedAt ? formatElapsed(Date.now() - generationStartedAt) : '0s';
+
+      if (!looksLikePatch(patchText)) {
+        pendingPatchTarget = null;
+        stopGeneration('');
+        showError('AI did not return a valid unified diff patch, so no patch file was saved.');
+        return;
+      }
+
+      const saveResult = await window.redmine.code.writePatch(
+        pendingPatchTarget.dir,
+        pendingPatchTarget.filename,
+        patchText,
+      );
+      pendingPatchTarget = null;
+
+      if (!saveResult.ok) {
+        stopGeneration('');
+        showError(saveResult.error || 'Failed to save patch file.');
+        return;
+      }
+
+      setStatus(codeStatusEl, `Patch saved to ${saveResult.path}`, 'ok');
+      stopGeneration(`Done — patch saved in ${elapsed}.`, 'ok');
+      return;
+    }
+
+    const elapsed = generationStartedAt ? formatElapsed(Date.now() - generationStartedAt) : '0s';
+    stopGeneration(`Done — ${receivedChars} chars received in ${elapsed}.`, 'ok');
   });
 
   window.redmine.on('ai:error', (err) => {
     if (!document.contains(errorEl)) return;
+    pendingPatchTarget = null;
     setGenerating(false);
+    stopGeneration('');
     genStatusEl.style.display = 'none';
     showError(err);
   });

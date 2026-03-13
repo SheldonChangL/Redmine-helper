@@ -77,6 +77,38 @@ function register() {
 
     return { ok: true, files, truncated: totalBytes.n >= MAX_TOTAL_BYTES };
   });
+
+  ipcMain.handle(IPC.CODE_WRITE_PATCH, (_e, dirPath, filename, patchText) => {
+    if (!dirPath || !dirPath.trim()) {
+      return { ok: false, error: 'No directory path provided.' };
+    }
+
+    const resolvedDir = path.resolve(dirPath.trim());
+    try {
+      fs.accessSync(resolvedDir, fs.constants.W_OK);
+    } catch {
+      return { ok: false, error: `Cannot write to directory: ${resolvedDir}` };
+    }
+
+    const safeFilename = path.basename(String(filename || 'ai-generated.patch').trim() || 'ai-generated.patch');
+    if (!safeFilename.endsWith('.patch') && !safeFilename.endsWith('.diff')) {
+      return { ok: false, error: 'Patch filename must end with .patch or .diff.' };
+    }
+
+    const content = String(patchText || '');
+    if (!content.trim()) {
+      return { ok: false, error: 'No patch content provided.' };
+    }
+
+    const targetPath = path.join(resolvedDir, safeFilename);
+    try {
+      fs.writeFileSync(targetPath, content, 'utf-8');
+    } catch (err) {
+      return { ok: false, error: `Failed to write patch: ${err.message}` };
+    }
+
+    return { ok: true, path: targetPath };
+  });
 }
 
 module.exports = { register };

@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('redmine', {
   },
   code: {
     read: (dirPath) => ipcRenderer.invoke(IPC.CODE_READ, dirPath),
+    writePatch: (dirPath, filename, patchText) => ipcRenderer.invoke(IPC.CODE_WRITE_PATCH, dirPath, filename, patchText),
   },
   time: {
     log: (entry) => ipcRenderer.invoke(IPC.TIME_LOG, entry),
